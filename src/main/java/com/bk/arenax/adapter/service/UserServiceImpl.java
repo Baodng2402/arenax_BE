@@ -12,6 +12,9 @@ import com.bk.arenax.dto.request.CreateUserRequest;
 import com.bk.arenax.dto.request.UpdateUserRequest;
 import com.bk.arenax.domain.user.User;
 import com.bk.arenax.dto.response.UserResponse;
+import com.bk.arenax.infrastructure.exception.DuplicateResourceException;
+import com.bk.arenax.infrastructure.exception.ExceptionConstants;
+import com.bk.arenax.infrastructure.exception.ResourceNotFoundException;
 import com.bk.arenax.port.repository.UserRepository;
 import com.bk.arenax.port.service.UserService;
 import jakarta.transaction.Transactional;
@@ -43,7 +46,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse getUser(Long id) {
         return userRepository.findById(id)
                 .map(this::toUserResponse)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                .orElseThrow(() -> userNotFound(id));
     }
 
     private UserResponse toUserResponse(User user) {
@@ -87,7 +90,9 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
         if(userRepository.existsByEmail(request.email())){
-            throw new RuntimeException("Email already exists: " + request.email());
+            throw new DuplicateResourceException(
+                    ExceptionConstants.EMAIL_ALREADY_EXISTS,
+                    "Email already exists: " + request.email());
         } else {
             User user = new User();
             user.setName(request.name());
@@ -121,7 +126,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
-        User existingUser = userRepository.findById(id).orElseThrow(()-> new RuntimeException("User not found with id: " + id));
+        User existingUser = userRepository.findById(id).orElseThrow(() -> userNotFound(id));
             existingUser.setName(request.name());
             existingUser.setFullName(firstNonBlank(request.fullName(), request.name()));
             existingUser.setDisplayName(firstNonBlank(request.displayName(), request.name()));
@@ -137,8 +142,14 @@ public class UserServiceImpl implements UserService {
         if(userRepository.findById(id).isPresent()) {
             userRepository.deleteById(id);
         } else {
-            throw new RuntimeException("User not found with id: " + id);
+            throw userNotFound(id);
         }
+    }
+
+    private ResourceNotFoundException userNotFound(Long id) {
+        return new ResourceNotFoundException(
+                ExceptionConstants.USER_NOT_FOUND,
+                "User not found with id: " + id);
     }
 
     private String firstNonBlank(String value, String fallback) {
