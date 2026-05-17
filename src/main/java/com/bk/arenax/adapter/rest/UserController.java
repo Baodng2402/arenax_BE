@@ -29,8 +29,11 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<User>> getUsers() {
-        return new ResponseEntity<>(userService.getUsers(), HttpStatus.OK);
+    public ResponseEntity<List<UserResponse>> getUsers() {
+        List<UserResponse> users = userService.getUsers().stream()
+                .map(user -> new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getGender()))
+                .toList();
+        return new ResponseEntity<>(users, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")

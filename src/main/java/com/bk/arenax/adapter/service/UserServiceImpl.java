@@ -7,6 +7,7 @@ import com.bk.arenax.dto.response.UserResponse;
 import com.bk.arenax.port.repository.UserRepository;
 import com.bk.arenax.port.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public List<User> getUsers() {
@@ -50,7 +52,8 @@ public class UserServiceImpl implements UserService {
             User user = new User();
             user.setName(request.name());
             user.setEmail(request.email());
-            user.setPassword(request.password());
+            user.setPassword(passwordEncoder.encode(request.password()));
+            user.setGender(request.gender());
             return userRepository.save(user);
         }
 

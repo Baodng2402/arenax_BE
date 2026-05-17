@@ -19,3 +19,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+application:
+  security:
+    jwt:
+      secret: arenax-local-development-jwt-secret-key-please-change
+      expiration: 900000
+      refresh-token:
+        expiration: 604800000
