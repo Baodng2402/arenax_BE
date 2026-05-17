@@ -10,6 +10,14 @@ public record UpdateUserRequest(
         @NotBlank(message = "Name is required")
         String name,
 
+        String fullName,
+
+        String displayName,
+
+        String phoneNumber,
+
+        String avatarUrl,
+
         @NotBlank(message = "Email is required")
         @Email(message = "Email must be valid")
         String email,

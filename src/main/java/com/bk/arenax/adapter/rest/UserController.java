@@ -2,7 +2,6 @@ package com.bk.arenax.adapter.rest;
 
 import com.bk.arenax.dto.request.CreateUserRequest;
 import com.bk.arenax.dto.request.UpdateUserRequest;
-import com.bk.arenax.domain.user.User;
 import com.bk.arenax.dto.response.UserResponse;
 import com.bk.arenax.port.service.UserService;
 import jakarta.validation.Valid;
@@ -30,10 +29,7 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<List<UserResponse>> getUsers() {
-        List<UserResponse> users = userService.getUsers().stream()
-                .map(user -> new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getGender()))
-                .toList();
-        return new ResponseEntity<>(users, HttpStatus.OK);
+        return new ResponseEntity<>(userService.getUsers(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
@@ -43,12 +39,12 @@ public class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<User> createUser(@Valid @RequestBody CreateUserRequest request) {
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         return new ResponseEntity<>(userService.createUser(request), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
+    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest request) {
         return new ResponseEntity<>(userService.updateUser(id,request), HttpStatus.OK);
     }
 
