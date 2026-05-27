@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/arenax}
+    username: ${DATABASE_USERNAME:arenax}
+    password: ${DATABASE_PASSWORD:arenax_dev_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: ${JPA_SHOW_SQL:false}
+
+application:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:arenax-dev-jwt-secret-change-me}

@@ -22,28 +22,28 @@ import lombok.Setter;
 @Entity
 @Table(name = "accounts")
 public class Account extends BaseEntity {
-    @Column(nullable = false, length = 120)
-    private String name;
+  @Column(nullable = false, length = 120)
+  private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private AccountType type = AccountType.PERSONAL;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  private AccountType type = AccountType.PERSONAL;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private AccountStatus status = AccountStatus.ACTIVE;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  private AccountStatus status = AccountStatus.ACTIVE;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_user_id")
-    private User owner;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "owner_user_id")
+  private User owner;
 
-    @OneToOne(mappedBy = "account", fetch = FetchType.LAZY)
-    private Subscription subscription;
+  @OneToOne(mappedBy = "account", fetch = FetchType.LAZY)
+  private Subscription subscription;
 
-    public Account(String name, AccountType type, AccountStatus status, User owner) {
-        this.name = name;
-        this.type = type;
-        this.status = status;
-        this.owner = owner;
-    }
+  public Account(String name, AccountType type, AccountStatus status, User owner) {
+    this.name = name;
+    this.type = type;
+    this.status = status;
+    this.owner = owner;
+  }
 }

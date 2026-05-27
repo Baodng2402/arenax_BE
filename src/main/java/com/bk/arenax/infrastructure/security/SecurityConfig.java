@@ -1,5 +1,9 @@
 package com.bk.arenax.infrastructure.security;
 
+import static com.bk.arenax.infrastructure.security.SecurityConstants.PUBLIC_APIS;
+
+import java.util.Arrays;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,11 +21,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static com.bk.arenax.infrastructure.security.SecurityConstants.PUBLIC_APIS;
-
 @Configuration
 public class SecurityConfig {
 
@@ -36,19 +35,19 @@ public class SecurityConfig {
 
   @Bean
   SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    return http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(PUBLIC_APIS).permitAll()
-             .anyRequest().authenticated()
-            )
-            .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
-                    (request, response, authException) -> response.sendError(HttpStatus.UNAUTHORIZED.value())
-            ))
-            .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .build();
+    return http.csrf(AbstractHttpConfigurer::disable)
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .authorizeHttpRequests(
+            auth -> auth.requestMatchers(PUBLIC_APIS).permitAll().anyRequest().authenticated())
+        .exceptionHandling(
+            exceptions ->
+                exceptions.authenticationEntryPoint(
+                    (request, response, authException) ->
+                        response.sendError(HttpStatus.UNAUTHORIZED.value())))
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .build();
   }
 
   @Bean
@@ -63,15 +62,15 @@ public class SecurityConfig {
     url.registerCorsConfiguration(SecurityConstants.CORS_PATH_PATTERNS, config);
     return url;
   }
+
   @Bean
   PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
 
-
   @Bean
-  AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+  AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig)
+      throws Exception {
     return authConfig.getAuthenticationManager();
   }
-
 }

@@ -20,64 +20,64 @@ import org.springframework.security.core.userdetails.UserDetails;
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 @Entity(name = "users")
 public class User extends BaseEntity implements UserDetails {
-    String name;
-    String email;
-    String password;
+  String name;
+  String email;
+  String password;
 
-    @Column(name = "full_name", length = 120)
-    String fullName;
+  @Column(name = "full_name", length = 120)
+  String fullName;
 
-    @Column(name = "display_name", length = 80)
-    String displayName;
+  @Column(name = "display_name", length = 80)
+  String displayName;
 
-    @Column(name = "phone_number", length = 30)
-    String phoneNumber;
+  @Column(name = "phone_number", length = 30)
+  String phoneNumber;
 
-    @Column(name = "avatar_url", length = 500)
-    String avatarUrl;
+  @Column(name = "avatar_url", length = 500)
+  String avatarUrl;
 
-    @Enumerated(EnumType.STRING)
-    Gender gender;
+  @Enumerated(EnumType.STRING)
+  Gender gender;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    UserStatus status = UserStatus.ACTIVE;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  UserStatus status = UserStatus.ACTIVE;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    UserRole role = UserRole.USER;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  UserRole role = UserRole.USER;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id")
-    Account account;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "account_id")
+  Account account;
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
-    }
+  @Override
+  public Collection<? extends GrantedAuthority> getAuthorities() {
+    return List.of();
+  }
 
-    @Override
-    public String getUsername() {
-        return email;
-    }
+  @Override
+  public String getUsername() {
+    return email;
+  }
 
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+  @Override
+  public boolean isAccountNonExpired() {
+    return true;
+  }
 
-    @Override
-    public boolean isAccountNonLocked() {
-        return status != UserStatus.SUSPENDED;
-    }
+  @Override
+  public boolean isAccountNonLocked() {
+    return status != UserStatus.SUSPENDED;
+  }
 
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
+  @Override
+  public boolean isCredentialsNonExpired() {
+    return true;
+  }
 
-    @Override
-    public boolean isEnabled() {
-        return status == UserStatus.ACTIVE;
-    }
+  @Override
+  public boolean isEnabled() {
+    return status == UserStatus.ACTIVE;
+  }
 }

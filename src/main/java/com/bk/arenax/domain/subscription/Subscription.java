@@ -21,31 +21,31 @@ import lombok.Setter;
 @Entity
 @Table(name = "subscriptions")
 public class Subscription extends BaseEntity {
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "account_id", nullable = false, unique = true)
-    private Account account;
+  @OneToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "account_id", nullable = false, unique = true)
+  private Account account;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private SubscriptionPlan plan = SubscriptionPlan.FREE;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  private SubscriptionPlan plan = SubscriptionPlan.FREE;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private SubscriptionStatus status = SubscriptionStatus.ACTIVE;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 30)
+  private SubscriptionStatus status = SubscriptionStatus.ACTIVE;
 
-    @Column(name = "started_at", nullable = false)
-    private Instant startedAt = Instant.now();
+  @Column(name = "started_at", nullable = false)
+  private Instant startedAt = Instant.now();
 
-    @Column(name = "expires_at")
-    private Instant expiresAt;
+  @Column(name = "expires_at")
+  private Instant expiresAt;
 
-    @Column(name = "cancelled_at")
-    private Instant cancelledAt;
+  @Column(name = "cancelled_at")
+  private Instant cancelledAt;
 
-    public Subscription(Account account, SubscriptionPlan plan, SubscriptionStatus status) {
-        this.account = account;
-        this.plan = plan;
-        this.status = status;
-        this.startedAt = Instant.now();
-    }
+  public Subscription(Account account, SubscriptionPlan plan, SubscriptionStatus status) {
+    this.account = account;
+    this.plan = plan;
+    this.status = status;
+    this.startedAt = Instant.now();
+  }
 }
