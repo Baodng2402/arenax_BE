@@ -1,6 +1,6 @@
 package com.bk.arenax.domain.matches;
 
-public enum MatchesType {
+public enum MatchType {
     RANK,
     FUN
 }

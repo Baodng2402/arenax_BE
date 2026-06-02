@@ -1,6 +1,6 @@
 package com.bk.arenax.domain.matches;
 
-public enum MatchesStatus {
+public enum MatchStatus {
     PENDING,
     ONGOING,
     COMPLETED,
