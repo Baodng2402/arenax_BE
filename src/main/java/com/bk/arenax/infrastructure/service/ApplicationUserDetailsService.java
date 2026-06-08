@@ -1,6 +1,6 @@
 package com.bk.arenax.infrastructure.service;
 
-import com.bk.arenax.port.repository.UserRepository;
+import com.bk.arenax.adapter.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

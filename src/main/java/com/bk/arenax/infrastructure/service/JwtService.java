@@ -1,11 +1,13 @@
 package com.bk.arenax.infrastructure.service;
 
+import com.bk.arenax.domain.user.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import javax.crypto.SecretKey;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class JwtService {
   private static final String TOKEN_TYPE_CLAIM = "type";
+  private static final String USER_ID_CLAIM = "userId";
   private static final String ACCESS_TOKEN_TYPE = "access";
   private static final String REFRESH_TOKEN_TYPE = "refresh";
 
@@ -34,11 +37,19 @@ public class JwtService {
   }
 
   public String generateAccessToken(UserDetails userDetails) {
-    return buildToken(userDetails.getUsername(), ACCESS_TOKEN_TYPE, accessTokenExpirationMs);
+    return buildToken(
+        userDetails.getUsername(),
+        extractUserId(userDetails),
+        ACCESS_TOKEN_TYPE,
+        accessTokenExpirationMs);
   }
 
   public String generateRefreshToken(UserDetails userDetails) {
-    return buildToken(userDetails.getUsername(), REFRESH_TOKEN_TYPE, refreshTokenExpirationMs);
+    return buildToken(
+        userDetails.getUsername(),
+        extractUserId(userDetails),
+        REFRESH_TOKEN_TYPE,
+        refreshTokenExpirationMs);
   }
 
   public Instant refreshTokenExpiresAt() {
@@ -49,6 +60,10 @@ public class JwtService {
     return claims(token).getSubject();
   }
 
+  public Long extractUserId(String token) {
+    return claims(token).get(USER_ID_CLAIM, Long.class);
+  }
+
   public boolean isValidAccessToken(String token, UserDetails userDetails) {
     return isValidToken(token, userDetails, ACCESS_TOKEN_TYPE);
   }
@@ -57,11 +72,16 @@ public class JwtService {
     return isValidToken(token, userDetails, REFRESH_TOKEN_TYPE);
   }
 
-  private String buildToken(String subject, String tokenType, long expirationMs) {
+  private String buildToken(String subject, Long userId, String tokenType, long expirationMs) {
     Instant now = Instant.now();
+    Map<String, Object> claims = new HashMap<>();
+    claims.put(TOKEN_TYPE_CLAIM, tokenType);
+    if (userId != null) {
+      claims.put(USER_ID_CLAIM, userId);
+    }
     return Jwts.builder()
         .subject(subject)
-        .claims(Map.of(TOKEN_TYPE_CLAIM, tokenType))
+        .claims(claims)
         .id(UUID.randomUUID().toString())
         .issuedAt(Date.from(now))
         .expiration(Date.from(now.plusMillis(expirationMs)))
@@ -78,5 +98,12 @@ public class JwtService {
 
   private Claims claims(String token) {
     return Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token).getPayload();
+  }
+
+  private Long extractUserId(UserDetails userDetails) {
+    if (userDetails instanceof User user) {
+      return user.getId();
+    }
+    return null;
   }
 }

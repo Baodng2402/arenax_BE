@@ -1,7 +1,9 @@
 package com.bk.arenax.adapter.service;
 
-import com.bk.arenax.adapter.repository.JpaAccountRepository;
-import com.bk.arenax.adapter.repository.JpaSubscriptionRepository;
+import com.bk.arenax.adapter.repository.AccountRepository;
+import com.bk.arenax.adapter.repository.RoleRepository;
+import com.bk.arenax.adapter.repository.SubscriptionRepository;
+import com.bk.arenax.adapter.repository.UserRepository;
 import com.bk.arenax.domain.account.Account;
 import com.bk.arenax.domain.account.AccountStatus;
 import com.bk.arenax.domain.account.AccountType;
@@ -12,17 +14,23 @@ import com.bk.arenax.domain.user.User;
 import com.bk.arenax.dto.request.CreateUserRequest;
 import com.bk.arenax.dto.request.UpdateUserRequest;
 import com.bk.arenax.dto.response.UserResponse;
+import com.bk.arenax.infrastructure.exception.BadRequestException;
 import com.bk.arenax.infrastructure.exception.DuplicateResourceException;
 import com.bk.arenax.infrastructure.exception.ErrorCode;
 import com.bk.arenax.infrastructure.exception.ResourceNotFoundException;
-import com.bk.arenax.port.repository.UserRepository;
 import com.bk.arenax.port.service.UserService;
 import com.bk.arenax.shared.pagination.BasePaginationRequest;
 import com.bk.arenax.shared.pagination.BasePaginationResponse;
 import com.bk.arenax.shared.pagination.PagedResult;
+import com.bk.arenax.shared.pagination.PaginationHelper;
 import jakarta.transaction.Transactional;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -30,26 +38,37 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
   private final UserRepository userRepository;
-  private final JpaAccountRepository accountRepository;
-  private final JpaSubscriptionRepository subscriptionRepository;
+  private final AccountRepository accountRepository;
+  private final SubscriptionRepository subscriptionRepository;
+  private final RoleRepository roleRepository;
   private final PasswordEncoder passwordEncoder;
+  private final RbacAuthorizationService authorizationService;
 
   @Override
   @Transactional
   public List<UserResponse> getUsers() {
+    authorizationService.requirePermission("USER", "VIEW");
     return userRepository.findAll().stream().map(this::toUserResponse).toList();
   }
 
   @Override
   @Transactional
   public BasePaginationResponse<UserResponse> getUsers(BasePaginationRequest request) {
-    PagedResult<User> users = userRepository.findAll(request);
+    authorizationService.requirePermission("USER", "VIEW");
+    Page<User> page = userRepository.findAll(PaginationHelper.setPage(request));
+    PagedResult<User> users =
+        PagedResult.of(
+            page.getContent(),
+            request.getCurrentPage(),
+            request.getPageSize(),
+            page.getTotalElements());
     return BasePaginationResponse.of(users.map(this::toUserResponse));
   }
 
   @Override
   @Transactional
   public UserResponse getUser(Long id) {
+    authorizationService.requireSelfOrPermission(id, "USER", "VIEW");
     return userRepository
         .findById(id)
         .map(this::toUserResponse)
@@ -90,13 +109,15 @@ public class UserServiceImpl implements UserService {
         user.getEmail(),
         user.getGender(),
         user.getStatus(),
-        user.getRole(),
+        authorities(user.getAuthorities(), true),
+        authorities(user.getAuthorities(), false),
         accountInfo);
   }
 
   @Override
   @Transactional
   public UserResponse createUser(CreateUserRequest request) {
+    authorizationService.requirePermission("USER", "CREATE");
     if (userRepository.existsByEmail(request.email())) {
       throw new DuplicateResourceException(
           ErrorCode.EMAIL_ALREADY_EXISTS, "Email already exists: " + request.email());
@@ -126,6 +147,14 @@ public class UserServiceImpl implements UserService {
       savedAccount.setSubscription(savedSubscription);
 
       savedUser.setAccount(savedAccount);
+      var userRole =
+          roleRepository
+              .findByCodeName("USER")
+              .orElseThrow(
+                  () ->
+                      new BadRequestException(
+                          ErrorCode.BAD_REQUEST, "Default role USER is missing"));
+      savedUser.replaceRolesForAccount(savedAccount, Set.of(userRole));
       return toUserResponse(userRepository.save(savedUser));
     }
   }
@@ -133,6 +162,7 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public UserResponse updateUser(Long id, UpdateUserRequest request) {
+    authorizationService.requireSelfOrPermission(id, "USER", "UPDATE");
     User existingUser = userRepository.findById(id).orElseThrow(() -> userNotFound(id));
     existingUser.setName(request.name());
     existingUser.setFullName(firstNonBlank(request.fullName(), request.name()));
@@ -146,6 +176,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public void deleteUser(Long id) {
+    authorizationService.requirePermission("USER", "DELETE");
     if (userRepository.findById(id).isPresent()) {
       userRepository.deleteById(id);
     } else {
@@ -162,5 +193,13 @@ public class UserServiceImpl implements UserService {
       return value;
     }
     return fallback;
+  }
+
+  private Set<String> authorities(
+      Collection<? extends GrantedAuthority> authorities, boolean roles) {
+    return authorities.stream()
+        .map(GrantedAuthority::getAuthority)
+        .filter(authority -> roles == authority.startsWith("ROLE_"))
+        .collect(Collectors.toSet());
   }
 }

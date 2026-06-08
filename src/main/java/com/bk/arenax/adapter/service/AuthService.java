@@ -6,10 +6,14 @@ import com.bk.arenax.domain.user.User;
 import com.bk.arenax.dto.request.LoginRequest;
 import com.bk.arenax.dto.request.RefreshTokenRequest;
 import com.bk.arenax.dto.response.AuthResponse;
+import com.bk.arenax.dto.response.AuthUserResponse;
 import com.bk.arenax.infrastructure.service.JwtService;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
@@ -54,6 +58,17 @@ public class AuthService {
     String refreshToken = jwtService.generateRefreshToken(userDetails);
     refreshTokenRepository.save(
         new RefreshToken((User) userDetails, refreshToken, jwtService.refreshTokenExpiresAt()));
-    return new AuthResponse(accessToken, refreshToken);
+    return new AuthResponse(
+        accessToken,
+        refreshToken,
+        AuthUserResponse.from(
+            (User) userDetails, authorities(userDetails, true), authorities(userDetails, false)));
+  }
+
+  private Set<String> authorities(UserDetails userDetails, boolean roles) {
+    return userDetails.getAuthorities().stream()
+        .map(GrantedAuthority::getAuthority)
+        .filter(authority -> roles == authority.startsWith("ROLE_"))
+        .collect(Collectors.toSet());
   }
 }

@@ -5,9 +5,9 @@ import com.bk.arenax.domain.account.AccountType;
 import com.bk.arenax.domain.subscription.SubscriptionPlan;
 import com.bk.arenax.domain.subscription.SubscriptionStatus;
 import com.bk.arenax.domain.user.Gender;
-import com.bk.arenax.domain.user.UserRole;
 import com.bk.arenax.domain.user.UserStatus;
 import java.time.Instant;
+import java.util.Set;
 
 public record UserResponse(
     Long id,
@@ -19,7 +19,8 @@ public record UserResponse(
     String email,
     Gender gender,
     UserStatus status,
-    UserRole role,
+    Set<String> roles,
+    Set<String> permissions,
     AccountInfo account) {
   public record AccountInfo(
       Long id,
