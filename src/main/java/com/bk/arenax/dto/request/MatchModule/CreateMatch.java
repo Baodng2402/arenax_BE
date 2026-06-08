@@ -1,43 +1,29 @@
 package com.bk.arenax.dto.request.MatchModule;
-import com.bk.arenax.domain.matches.MatchType;
-import com.bk.arenax.domain.matches.MatchFormat;
-import com.bk.arenax.domain.matches.SportType;
+import com.bk.arenax.domain.matches.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 public record CreateMatch(
-    @NotNull(message = "Account 1 is required")
-    Long account1Id,
+        @NotNull(message = "Match type is required")
+        MatchType matchType,
 
-    @NotNull(message = "Account 2 is required")
-    Long account2Id,
+        @NotNull(message = "Sport type is required")
+        SportType sportType,
 
-    @NotNull(message = "Number player of account 1 is required")
-    @Positive(message = "Number player of account 1 must be greater than 0")
-    Integer numberPlayerOfAccount1,
+        @NotNull(message = "Match format is required")
+        MatchFormat matchFormat,
 
-    @NotNull(message = "Number player of account 2 is required")
-    @Positive(message = "Number player of account 2 must be greater than 0")
-    Integer numberPlayerOfAccount2,
+        @NotNull(message = "Please input the started time")
+        Instant startedAt,
 
-    @NotNull(message = "Match type is required")
-    MatchType matchType,
+        @NotNull(message = "Please input the ended time")
+        Instant endedAt,
 
-    @NotNull(message = "Sport type is required")
-    SportType sportType,
-
-    @NotNull(message = "Match format is required")
-    MatchFormat matchesFormat,
-
-    Map<String, Object> playersData,
-
-    Instant startedAt
+        @NotNull(message = "Quantity Player is not 0")
+        @Size(min = 2, message = "At least 2 players")
+        List<Long> playerIds
 ) {
-    public Map<String, Object> playersData() {
-        return playersData == null ? new HashMap<>() : playersData;
-    }
 }

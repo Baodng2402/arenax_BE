@@ -1,23 +1,18 @@
 package com.bk.arenax.dto.response.MatchModule;
+import com.bk.arenax.domain.matches.*;
+
 import java.time.Instant;
-import java.util.Map;
 
 public record MatchResponse(
-        AccountSummaryResponse account1,
-        AccountSummaryResponse account2,
-        Integer numberPlayerOfAccount1,
-        Integer numberPlayerOfAccount2,
-        String matchType,
-        String sportType,
-        String matchesFormat,
-        String matchResult,
-        String matchStatus,
-        AccountSummaryResponse winnerAccount,
-                AccountSummaryResponse loserAccount,
-        Integer scoreAccount1,
-        Integer scoreAccount2,
-        Map<String, Object> playersData,
+        Long id,
+        MatchType matchType,
+        SportType sportType,
+        MatchFormat matchFormat,
+        MatchResult matchResult,
+        MatchStatus matchStatus,
         Instant startedAt,
-        Instant endedAt
-
-        ) {}
+        Instant endedAt,
+        Instant arrivalTime,
+        Instant estimatedPlayingTime
+) {
+}

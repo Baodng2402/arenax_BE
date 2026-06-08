@@ -2,6 +2,7 @@ package com.bk.arenax.domain.matches;
 
 import com.bk.arenax.domain.account.Account;
 import com.bk.arenax.domain.common.BaseEntity;
+import com.bk.arenax.domain.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -25,7 +26,7 @@ public class MatchSide extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "representative_account_id")
-    Account representativeAccount;
+    User representativeUser;
 
     @Column(name = "number_of_players")
     Integer numberOfPlayers;

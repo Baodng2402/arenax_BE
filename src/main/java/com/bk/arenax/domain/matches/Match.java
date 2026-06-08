@@ -35,6 +35,9 @@ public class Match extends BaseEntity {
     @Column(name = "match_format", nullable = false)
     MatchFormat matchFormat;
 
+    @Column(name = "max_players")
+    Integer maxPlayers;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "match_result")
     MatchResult matchResult;
@@ -58,6 +61,14 @@ public class Match extends BaseEntity {
 
     @Column(name = "ended_at")
     Instant endedAt;
+
+    public Instant getArrivalTime() {
+        return startedAt.plusSeconds(900);
+    }
+
+    public Instant getEstimatedPlayingTime(){
+        return endedAt.minusSeconds(startedAt.getEpochSecond());
+    }
 
     public Integer getTotalPlayers() {
         return sides.stream()
