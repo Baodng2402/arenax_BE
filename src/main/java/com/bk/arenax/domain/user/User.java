@@ -2,15 +2,21 @@ package com.bk.arenax.domain.user;
 
 import com.bk.arenax.domain.account.Account;
 import com.bk.arenax.domain.common.BaseEntity;
+import com.bk.arenax.domain.rbac.Role;
+import com.bk.arenax.domain.rbac.UserRoleAssignment;
 import jakarta.persistence.*;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 @Getter
@@ -51,9 +57,56 @@ public class User extends BaseEntity implements UserDetails {
   @JoinColumn(name = "account_id")
   Account account;
 
+  @OneToMany(
+      mappedBy = "user",
+      cascade = CascadeType.ALL,
+      orphanRemoval = true,
+      fetch = FetchType.EAGER)
+  Set<UserRoleAssignment> roleAssignments = new HashSet<>();
+
+  public Set<Role> roles() {
+    return roleAssignments.stream().map(UserRoleAssignment::getRole).collect(Collectors.toSet());
+  }
+
+  public Set<Role> rolesForAccount(Long accountId) {
+    return roleAssignments.stream()
+        .filter(assignment -> sameAccount(assignment.getAccount(), accountId))
+        .map(UserRoleAssignment::getRole)
+        .collect(Collectors.toSet());
+  }
+
+  public void replaceRoles(Set<Role> roles) {
+    replaceRolesForAccount(account, roles);
+  }
+
+  public void replaceRolesForAccount(Account account, Set<Role> roles) {
+    Long accountId = account == null ? null : account.getId();
+    roleAssignments.removeIf(assignment -> sameAccount(assignment.getAccount(), accountId));
+    if (roles != null) {
+      roles.forEach(role -> roleAssignments.add(new UserRoleAssignment(this, account, role)));
+    }
+  }
+
+  public void assignRoles(Set<Role> roles) {
+    replaceRoles(roles);
+  }
+
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    return List.of();
+    Set<String> authorities = new HashSet<>();
+    roles()
+        .forEach(
+            role -> {
+              authorities.add(role.authorityName());
+              role.getPermissions()
+                  .forEach(permission -> authorities.add(permission.getCodeName()));
+            });
+    return authorities.stream().map(SimpleGrantedAuthority::new).toList();
+  }
+
+  private boolean sameAccount(Account assignmentAccount, Long accountId) {
+    Long assignmentAccountId = assignmentAccount == null ? null : assignmentAccount.getId();
+    return Objects.equals(assignmentAccountId, accountId);
   }
 
   @Override

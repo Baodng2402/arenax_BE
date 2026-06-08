@@ -3,7 +3,9 @@ package com.bk.arenax.adapter.repository;
 import com.bk.arenax.domain.user.RefreshToken;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 
-public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+public interface RefreshTokenRepository
+    extends JpaRepository<RefreshToken, Long>, QuerydslPredicateExecutor<RefreshToken> {
   Optional<RefreshToken> findByToken(String token);
 }
