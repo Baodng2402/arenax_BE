@@ -3,6 +3,7 @@ package com.bk.arenax.adapter.rest;
 import com.bk.arenax.adapter.service.AuthService;
 import com.bk.arenax.dto.request.LoginRequest;
 import com.bk.arenax.dto.request.RefreshTokenRequest;
+import com.bk.arenax.dto.response.ApiResponse;
 import com.bk.arenax.dto.response.AuthResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,15 +17,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
-  private final AuthService authService;
+    private final AuthService authService;
 
-  @PostMapping("/login")
-  public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-    return ResponseEntity.ok(authService.login(request));
-  }
+    @PostMapping("/login")
+    public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ApiResponse.of(authService.login(request));
+    }
 
-  @PostMapping("/refresh")
-  public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-    return ResponseEntity.ok(authService.refresh(request));
-  }
+    @PostMapping("/refresh")
+    public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ApiResponse.of(authService.refresh(request));
+    }
 }
