@@ -1,41 +1,38 @@
 package com.bk.arenax.domain.common;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
+
 import java.time.Instant;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+
+import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
 @Setter
-@ToString
-@RequiredArgsConstructor
-@SuperBuilder(toBuilder = true)
 @MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
+@NoArgsConstructor
 public abstract class BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Builder.Default
   @Column(name = "is_active", nullable = false)
   protected boolean isActive = Boolean.TRUE;
 
-  @Column(name = "created_at")
+  @CreatedDate
+  @Column(name = "created_at", updatable = false)
   private Instant createdAt;
 
+  @LastModifiedDate
   @Column(name = "updated_at")
   private Instant updatedAt;
 
-  @Builder.Default
   @Column(nullable = false)
+  @Version
   private Integer version = 0;
 
   public boolean isActive() {
@@ -58,10 +55,4 @@ public abstract class BaseEntity {
     this.isActive = active;
   }
 
-  public void updateVersion() {
-    if (this.version == null) {
-      this.version = 0;
-    }
-    this.version++;
-  }
 }

@@ -1,4 +1,4 @@
-package com.bk.arenax.adapter.repository;
+package com.bk.arenax.adapter.repository.tenant;
 
 import com.bk.arenax.domain.subscription.Subscription;
 import org.springframework.data.jpa.repository.JpaRepository;

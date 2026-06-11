@@ -1,4 +1,4 @@
-package com.bk.arenax.adapter.repository;
+package com.bk.arenax.adapter.repository.rbac;
 
 import com.bk.arenax.domain.rbac.Permission;
 import java.util.Collection;

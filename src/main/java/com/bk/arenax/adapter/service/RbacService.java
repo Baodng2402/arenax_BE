@@ -1,8 +1,8 @@
 package com.bk.arenax.adapter.service;
 
 import com.bk.arenax.adapter.repository.AccountRepository;
-import com.bk.arenax.adapter.repository.PermissionRepository;
-import com.bk.arenax.adapter.repository.RoleRepository;
+import com.bk.arenax.adapter.repository.rbac.PermissionRepository;
+import com.bk.arenax.adapter.repository.rbac.RoleRepository;
 import com.bk.arenax.adapter.repository.UserRepository;
 import com.bk.arenax.domain.account.Account;
 import com.bk.arenax.domain.rbac.Permission;
