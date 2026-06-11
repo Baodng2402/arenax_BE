@@ -1,18 +1,20 @@
 package com.bk.arenax.dto.response.MatchModule;
-import com.bk.arenax.domain.matches.*;
 
-import java.time.Instant;
+import com.bk.arenax.domain.match.MatchResult;
+import com.bk.arenax.domain.match.MatchStatus;
+import com.bk.arenax.domain.match.MatchType;
+
+import
 
 public record MatchResponse(
         Long id,
         MatchType matchType,
-        SportType sportType,
-        MatchFormat matchFormat,
+        Long sportId,
+        String sportCode,
+        String sportName,
         MatchResult matchResult,
         MatchStatus matchStatus,
         Instant startedAt,
         Instant endedAt,
-        Instant arrivalTime,
-        Instant estimatedPlayingTime
-) {
+        Instant arrivalTime) {
 }

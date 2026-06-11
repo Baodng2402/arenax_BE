@@ -1,5 +1,6 @@
 package com.bk.arenax.dto.request.MatchModule;
-import com.bk.arenax.domain.matches.*;
+
+import com.bk.arenax.domain.match.MatchType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -10,11 +11,8 @@ public record CreateMatch(
         @NotNull(message = "Match type is required")
         MatchType matchType,
 
-        @NotNull(message = "Sport type is required")
-        SportType sportType,
-
-        @NotNull(message = "Match format is required")
-        MatchFormat matchFormat,
+        @NotNull(message = "Sport is required")
+        Long sportId,
 
         @NotNull(message = "Please input the started time")
         Instant startedAt,

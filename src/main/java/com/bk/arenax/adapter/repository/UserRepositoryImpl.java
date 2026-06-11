@@ -1,7 +1,6 @@
 package com.bk.arenax.adapter.repository;
 
 import com.bk.arenax.domain.user.User;
-import com.bk.arenax.port.repository.UserRepository;
 import com.bk.arenax.shared.pagination.BasePaginationRequest;
 import com.bk.arenax.shared.pagination.PagedResult;
 import com.bk.arenax.shared.pagination.PaginationHelper;
@@ -13,9 +12,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class UserRepositoryImpl implements UserRepository {
+public class UserRepositoryImpl implements com.bk.arenax.port.repository.UserRepository {
 
-  private final JpaUserRepository jpaUserRepository;
+  private final UserRepository jpaUserRepository;
 
   @Override
   public List<User> findAll() {
@@ -43,8 +42,13 @@ public class UserRepositoryImpl implements UserRepository {
   }
 
   @Override
+  public Boolean existsById(Long id) {
+    return jpaUserRepository.existsById(id);
+  }
+
+  @Override
   public Boolean existsByEmail(String email) {
-    return jpaUserRepository.existsUserByEmail(email);
+    return jpaUserRepository.existsByEmail(email);
   }
 
   @Override

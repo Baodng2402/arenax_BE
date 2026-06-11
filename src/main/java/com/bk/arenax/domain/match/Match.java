@@ -1,4 +1,4 @@
-package com.bk.arenax.domain.matches;
+package com.bk.arenax.domain.match;
 
 import com.bk.arenax.domain.common.BaseEntity;
 import jakarta.persistence.*;
@@ -23,20 +23,15 @@ import java.util.Map;
 @Table(name = "matches")
 
 public class Match extends BaseEntity {
+
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "match_type", nullable = false)
-    MatchType matchType;
+    MatchType matchType = MatchType.FUN;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "sport_type", nullable = false)
-    SportType sportType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "match_format", nullable = false)
-    MatchFormat matchFormat;
-
-    @Column(name = "max_players")
-    Integer maxPlayers;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sport_id", nullable = false)
+    Sport sport;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "match_result")
@@ -49,7 +44,7 @@ public class Match extends BaseEntity {
 
     @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    List<MatchSide> sides = new ArrayList<>();
+    List<Team> teams = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "players_data", columnDefinition = "jsonb", nullable = false)
@@ -66,30 +61,8 @@ public class Match extends BaseEntity {
         return startedAt.plusSeconds(900);
     }
 
-    public Instant getEstimatedPlayingTime(){
-        return endedAt.minusSeconds(startedAt.getEpochSecond());
-    }
-
-    public Integer getTotalPlayers() {
-        return sides.stream()
-                .mapToInt(MatchSide::getPlayerCount)
-                .sum();
-    }
-
     public boolean isRankMatch() {
         return matchType == MatchType.RANK;
-    }
-
-    public boolean isOneVsOne() {
-        return matchFormat == MatchFormat.ONE_VS_ONE;
-    }
-
-    public boolean isTwoVsTwo() {
-        return matchFormat == MatchFormat.TWO_VS_TWO;
-    }
-
-    public boolean isCustomFormat() {
-        return matchFormat == MatchFormat.CUSTOM;
     }
 
     public boolean isFinished() {
@@ -102,17 +75,17 @@ public class Match extends BaseEntity {
     }
 
     public boolean hasWinner() {
-        return matchResult == MatchResult.SIDE1_WIN
-                || matchResult == MatchResult.SIDE2_WIN;
+        return matchResult == MatchResult.TEAM1_WIN
+                || matchResult == MatchResult.TEAM2_WIN;
     }
 
     public boolean isDraw() {
         return matchResult == MatchResult.DRAW;
     }
 
-    public void addSide(MatchSide side) {
-        this.sides.add(side);
-        side.setMatch(this);
+    public void addTeam(Team team) {
+        this.teams.add(team);
+        team.setMatch(this);
     }
 
     public void start() {
@@ -120,27 +93,27 @@ public class Match extends BaseEntity {
         this.startedAt = Instant.now();
     }
 
-    public void completeWithSide1Win(Integer scoreSide1, Integer scoreSide2) {
+    public void completeWithTeam1Win(Integer scoreTeam1, Integer scoreTeam2) {
         complete(
-                MatchResult.SIDE1_WIN,
-                scoreSide1,
-                scoreSide2
+                MatchResult.TEAM1_WIN,
+                scoreTeam1,
+                scoreTeam2
         );
     }
 
-    public void completeWithSide2Win(Integer scoreSide1, Integer scoreSide2) {
+    public void completeWithTeam2Win(Integer scoreTeam1, Integer scoreTeam2) {
         complete(
-                MatchResult.SIDE2_WIN,
-                scoreSide1,
-                scoreSide2
+                MatchResult.TEAM2_WIN,
+                scoreTeam1,
+                scoreTeam2
         );
     }
 
-    public void completeDraw(Integer scoreSide1, Integer scoreSide2) {
+    public void completeDraw(Integer scoreTeam1, Integer scoreTeam2) {
         complete(
                 MatchResult.DRAW,
-                scoreSide1,
-                scoreSide2
+                scoreTeam1,
+                scoreTeam2
         );
     }
 
@@ -151,27 +124,27 @@ public class Match extends BaseEntity {
 
     private void complete(
             MatchResult result,
-            Integer scoreSide1,
-            Integer scoreSide2
+            Integer scoreTeam1,
+            Integer scoreTeam2
     ) {
         this.matchStatus = MatchStatus.COMPLETED;
         this.matchResult = result;
-        setSideScore(1, scoreSide1);
-        setSideScore(2, scoreSide2);
+        setTeamScore(1, scoreTeam1);
+        setTeamScore(2, scoreTeam2);
         this.endedAt = Instant.now();
     }
 
-    private MatchSide getSide(Integer sideNumber) {
-        return sides.stream()
-                .filter(side -> sideNumber.equals(side.getSideNumber()))
+    private Team getTeam(Integer teamNumber) {
+        return teams.stream()
+                .filter(team -> teamNumber.equals(team.getTeamNumber()))
                 .findFirst()
                 .orElse(null);
     }
 
-    private void setSideScore(Integer sideNumber, Integer score) {
-        MatchSide side = getSide(sideNumber);
-        if (side != null) {
-            side.setScore(score);
+    private void setTeamScore(Integer teamNumber, Integer score) {
+        Team team = getTeam(teamNumber);
+        if (team != null) {
+            team.setScore(score);
         }
     }
 }

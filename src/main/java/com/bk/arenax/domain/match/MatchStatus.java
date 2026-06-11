@@ -1,4 +1,4 @@
-package com.bk.arenax.domain.matches;
+package com.bk.arenax.domain.match;
 
 public enum MatchStatus {
     PENDING,
