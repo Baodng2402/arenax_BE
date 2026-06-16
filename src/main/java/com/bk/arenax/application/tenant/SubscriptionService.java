@@ -4,7 +4,6 @@ import com.bk.arenax.adapter.repository.tenant.SubscriptionPlanRepository;
 import com.bk.arenax.adapter.repository.tenant.TenantRepository;
 import com.bk.arenax.adapter.repository.tenant.TenantSubscriptionRepository;
 import com.bk.arenax.domain.subscription.SubscriptionStatus;
-import com.bk.arenax.domain.tenant.SubscriptionPlan;
 import com.bk.arenax.domain.tenant.TenantSubscription;
 import com.bk.arenax.infrastructure.exception.TenantNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -13,10 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
