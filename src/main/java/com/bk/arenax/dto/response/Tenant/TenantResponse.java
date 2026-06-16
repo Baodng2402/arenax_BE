@@ -1,18 +1,12 @@
 package com.bk.arenax.dto.response.Tenant;
-
-import java.util.List;
-import java.util.Set;
+import com.bk.arenax.domain.tenant.TenantStatus;
+import java.time.Instant;
 
 public record TenantResponse(
+    Long id,
     String companyName,
-    String taxCode,
-    List<BranchResponse> branches,
-    String description,
-    String logoUrl,
-    String thumbnailUrl,
     String email,
-    Set<String> address,
-    Set<String> phone,
-    Double latitude,
-    Double longitude,
-    String socialLink) {}
+    String phone,
+    TenantStatus status,
+    Instant createdAt
+) {}

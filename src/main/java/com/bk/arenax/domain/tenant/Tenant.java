@@ -63,8 +63,16 @@ public class Tenant extends BaseEntity {
     this.status = TenantStatus.SUSPENDED;
   }
 
+  public void submit(){
+    this.status= TenantStatus.PENDING;
+  }
+
   private void requireStatus(TenantStatus...allowed){
     if(Arrays.stream(allowed).noneMatch(s->s==this.status))
       throw new IllegalArgumentException("Wrong pipeline status");
+  }
+  public void addBranch(Branch branch){
+    branches.add(branch);
+    branch.setTenant(this);
   }
 }
