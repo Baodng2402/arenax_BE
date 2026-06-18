@@ -3,14 +3,13 @@ package com.bk.arenax.domain.tenant;
 import com.bk.arenax.domain.common.BaseEntity;
 import com.bk.arenax.domain.subscription.SubscriptionStatus;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -33,8 +32,8 @@ public class TenantSubscription extends BaseEntity {
   LocalDate startDate;
   LocalDate endDate;
   BigDecimal pricePaid;
+
   public boolean isCurrentlyActive() {
-    return status == SubscriptionStatus.ACTIVE
-            && !LocalDate.now().isAfter(endDate);
+    return status == SubscriptionStatus.ACTIVE && !LocalDate.now().isAfter(endDate);
   }
 }

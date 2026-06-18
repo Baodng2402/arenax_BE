@@ -6,12 +6,12 @@ import com.bk.arenax.adapter.repository.tenant.TenantSubscriptionRepository;
 import com.bk.arenax.domain.subscription.SubscriptionStatus;
 import com.bk.arenax.domain.tenant.TenantSubscription;
 import com.bk.arenax.infrastructure.exception.TenantNotFoundException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -22,11 +22,15 @@ public class SubscriptionService {
   private final TenantSubscriptionRepository subscriptionRepository;
 
   @Transactional
-  public TenantSubscription startTrial(Long tenantId){
-    var tenant = tenantRepository.findById(tenantId)
-            .orElseThrow(()-> new TenantNotFoundException(tenantId));
-    var trialPlan = planRepository.findByCode("TRIAL")
-            .orElseThrow(()->new IllegalStateException("Chưa có plan trial trong DB"));
+  public TenantSubscription startTrial(Long tenantId) {
+    var tenant =
+        tenantRepository
+            .findById(tenantId)
+            .orElseThrow(() -> new TenantNotFoundException(tenantId));
+    var trialPlan =
+        planRepository
+            .findByCode("TRIAL")
+            .orElseThrow(() -> new IllegalStateException("Chưa có plan trial trong DB"));
     var sub = new TenantSubscription();
     sub.setTenant(tenant);
     sub.setPlan(trialPlan);

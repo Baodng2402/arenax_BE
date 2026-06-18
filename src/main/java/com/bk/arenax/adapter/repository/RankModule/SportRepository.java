@@ -5,5 +5,5 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SportRepository extends JpaRepository<Sport, Long> {
-    Optional<Sport> findBySportCode(String sportCode);
+  Optional<Sport> findBySportCode(String sportCode);
 }

@@ -3,10 +3,9 @@ package com.bk.arenax.domain.tenant;
 import com.bk.arenax.domain.common.BaseEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
-import java.math.BigDecimal;
 
 @Entity
 @Getter

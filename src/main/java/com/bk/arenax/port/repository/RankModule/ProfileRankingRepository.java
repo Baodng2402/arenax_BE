@@ -6,8 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.stereotype.Repository;
 
-
 @Repository
-public interface ProfileRankingRepository extends JpaRepository<ProfileRanking, Long> , QuerydslPredicateExecutor<ProfileRanking> {
+public interface ProfileRankingRepository
+    extends JpaRepository<ProfileRanking, Long>, QuerydslPredicateExecutor<ProfileRanking> {
   Optional<ProfileRanking> findByUserId(Long userId);
 }

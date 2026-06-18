@@ -16,14 +16,15 @@ public class TenantApprovalService {
   private final ApplicationEventPublisher events;
 
   @Transactional
-  public void approve(Long tenantId){
+  public void approve(Long tenantId) {
     Tenant tenant = load(tenantId);
     tenant.approve();
     events.publishEvent(new TenantApprovedEvent(tenantId));
   }
 
-  private Tenant load(Long tenantId){
-    return tenantRepository.findById(tenantId)
-            .orElseThrow(()-> new TenantNotFoundException(tenantId));
+  private Tenant load(Long tenantId) {
+    return tenantRepository
+        .findById(tenantId)
+        .orElseThrow(() -> new TenantNotFoundException(tenantId));
   }
 }

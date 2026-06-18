@@ -30,8 +30,7 @@ public class BranchWorkingSchedule extends BaseEntity {
   LocalTime closeTime;
 
   public boolean isOpenTime(LocalTime time) {
-  if (closeTime.isAfter(openTime))
-    return !time.isBefore(openTime) && time.isBefore(closeTime);
-  return !time.isBefore(openTime) || time.isBefore(closeTime);
-}
+    if (closeTime.isAfter(openTime)) return !time.isBefore(openTime) && time.isBefore(closeTime);
+    return !time.isBefore(openTime) || time.isBefore(closeTime);
+  }
 }

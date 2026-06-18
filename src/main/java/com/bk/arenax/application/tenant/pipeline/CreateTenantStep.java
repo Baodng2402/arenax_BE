@@ -6,9 +6,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Order(20)
-public class CreateTenantStep implements TenantCreationStep{
+public class CreateTenantStep implements TenantCreationStep {
   @Override
-  public void execute(TenantCreationContext context){
+  public void execute(TenantCreationContext context) {
     var req = context.getRequest();
     var tenant = new Tenant();
 

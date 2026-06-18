@@ -9,13 +9,11 @@ public record CreateTenantRequest(
     @Email @NotBlank String email,
     @NotBlank String phone,
     @Size(max = 1000) String description,
-    @Valid @NotNull FirstBranchInfo firstBranch
-) {
+    @Valid @NotNull FirstBranchInfo firstBranch) {
   public record FirstBranchInfo(
       @NotBlank @Size(max = 150) String name,
       @NotBlank @Size(max = 300) String address,
       Double latitude,
       Double longitude,
-      String phone
-  ) {}
+      String phone) {}
 }

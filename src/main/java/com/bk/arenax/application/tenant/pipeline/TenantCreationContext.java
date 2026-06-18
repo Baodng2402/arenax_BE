@@ -15,8 +15,8 @@ public class TenantCreationContext {
   @Setter private Tenant tenant;
   @Setter private Branch firstBranch;
 
-  public TenantCreationContext(CreateTenantRequest request, Account account){
-    this.request=request;
-    this.currentAccount=account;
+  public TenantCreationContext(CreateTenantRequest request, Account account) {
+    this.request = request;
+    this.currentAccount = account;
   }
 }

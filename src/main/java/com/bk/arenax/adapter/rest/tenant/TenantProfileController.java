@@ -13,18 +13,19 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class TenantProfileController {
   private final TenantService tenantService;
+
   @GetMapping()
-  public ApiResponse<TenantResponse> getTenantProfile(){
+  public ApiResponse<TenantResponse> getTenantProfile() {
     return ApiResponse.of(tenantService.getTenant());
   }
 
   @PostMapping()
-  public ApiResponse<TenantResponse> createTenant(@Valid @RequestBody CreateTenantRequest request){
+  public ApiResponse<TenantResponse> createTenant(@Valid @RequestBody CreateTenantRequest request) {
     return ApiResponse.of(tenantService.createTenant(request));
   }
 
   @PatchMapping()
-  public ApiResponse <TenantResponse> updateTenant(@Valid @RequestBody UpdateTenantRequest request){
+  public ApiResponse<TenantResponse> updateTenant(@Valid @RequestBody UpdateTenantRequest request) {
     return ApiResponse.of(tenantService.updateTenant(request));
   }
 }

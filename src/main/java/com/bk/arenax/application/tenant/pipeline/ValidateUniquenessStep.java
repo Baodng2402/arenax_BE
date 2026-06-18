@@ -10,9 +10,10 @@ import org.springframework.stereotype.Component;
 @Component
 @Order(10)
 @RequiredArgsConstructor
-public class ValidateUniquenessStep implements TenantCreationStep{
+public class ValidateUniquenessStep implements TenantCreationStep {
 
   private final TenantRepository tenantRepository;
+
   @Override
   public void execute(TenantCreationContext context) {
     var req = context.getRequest();

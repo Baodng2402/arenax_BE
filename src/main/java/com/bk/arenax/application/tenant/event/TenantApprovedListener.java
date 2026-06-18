@@ -3,7 +3,6 @@ package com.bk.arenax.application.tenant.event;
 import com.bk.arenax.application.tenant.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -13,7 +12,7 @@ public class TenantApprovedListener {
   private final SubscriptionService subscriptionService;
 
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-  public void onApproved(TenantApprovedEvent event){
+  public void onApproved(TenantApprovedEvent event) {
     subscriptionService.startTrial(event.tenantId());
   }
 }

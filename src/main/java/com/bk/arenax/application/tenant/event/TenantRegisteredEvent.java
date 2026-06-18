@@ -1,5 +1,3 @@
 package com.bk.arenax.application.tenant.event;
 
-public record TenantRegisteredEvent(Long tenantId) {
-}
-
+public record TenantRegisteredEvent(Long tenantId) {}

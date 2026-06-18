@@ -1,9 +1,9 @@
 package com.bk.arenax.adapter.service;
 
 import com.bk.arenax.adapter.repository.AccountRepository;
+import com.bk.arenax.adapter.repository.UserRepository;
 import com.bk.arenax.adapter.repository.rbac.RoleRepository;
 import com.bk.arenax.adapter.repository.tenant.SubscriptionRepository;
-import com.bk.arenax.adapter.repository.UserRepository;
 import com.bk.arenax.domain.account.Account;
 import com.bk.arenax.domain.account.AccountStatus;
 import com.bk.arenax.domain.account.AccountType;
@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;

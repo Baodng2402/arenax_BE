@@ -6,6 +6,5 @@ import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface BranchDayOverrideRepository extends
-        JpaRepository<BranchDayOverride,Long>, QuerydslPredicateExecutor<BranchDayOverride> {
-}
+public interface BranchDayOverrideRepository
+    extends JpaRepository<BranchDayOverride, Long>, QuerydslPredicateExecutor<BranchDayOverride> {}

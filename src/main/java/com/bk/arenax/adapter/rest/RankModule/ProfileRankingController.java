@@ -11,14 +11,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/rank/profile")
 @RequiredArgsConstructor
-
 public class ProfileRankingController {
-    private final ProfileRankingService profileRankingService;
+  private final ProfileRankingService profileRankingService;
 
-    @GetMapping
-    public ApiResponse<ProfileRankingResponse> getRanking() {
-        ProfileRankingResponse response = profileRankingService.getCurentRankingProfile();
-        return ApiResponse.of(response);
-    }
-
+  @GetMapping
+  public ApiResponse<ProfileRankingResponse> getRanking() {
+    ProfileRankingResponse response = profileRankingService.getCurentRankingProfile();
+    return ApiResponse.of(response);
+  }
 }

@@ -1,8 +1,8 @@
 package com.bk.arenax.adapter.service.tenant;
 
 import com.bk.arenax.adapter.repository.tenant.TenantRepository;
-import com.bk.arenax.dto.request.tenant.UpdateTenantRequest;
 import com.bk.arenax.dto.request.tenant.CreateTenantRequest;
+import com.bk.arenax.dto.request.tenant.UpdateTenantRequest;
 import com.bk.arenax.dto.response.Tenant.TenantResponse;
 import com.bk.arenax.port.service.Tenant.TenantService;
 import lombok.RequiredArgsConstructor;
@@ -15,12 +15,12 @@ public class TenantServiceImpl implements TenantService {
 
   @Override
   public TenantResponse getTenant() {
-
+    return null;
   }
 
   @Override
   public TenantResponse createTenant(CreateTenantRequest request) {
-    return
+    return null;
   }
 
   @Override
@@ -29,7 +29,5 @@ public class TenantServiceImpl implements TenantService {
   }
 
   @Override
-  public void deleteTenant() {
-
-  }
+  public void deleteTenant() {}
 }

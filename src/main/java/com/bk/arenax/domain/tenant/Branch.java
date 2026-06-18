@@ -16,7 +16,7 @@ import lombok.experimental.FieldDefaults;
 @Table(name = "branches")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Branch extends BaseEntity {
-  @ManyToOne( fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "tenant_id", referencedColumnName = "id")
   Tenant tenant;
 
@@ -29,8 +29,9 @@ public class Branch extends BaseEntity {
   String address;
   String socialLink;
 
-  @OneToMany(mappedBy="branch",cascade = CascadeType.ALL,orphanRemoval=true)
+  @OneToMany(mappedBy = "branch", cascade = CascadeType.ALL, orphanRemoval = true)
   List<Court> courts = new ArrayList<>();
+
   String timezone = "Asia/Ho_Chi_Minh";
 
   @OneToMany(mappedBy = "branch", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -54,7 +55,8 @@ public class Branch extends BaseEntity {
                     .filter(ws -> ws.getDayOfWeek().equals(day.getDayOfWeek()))
                     .anyMatch(ws -> ws.isWorkingDay() && ws.isOpenTime(time)));
   }
-  public void addCourt(Court court){
+
+  public void addCourt(Court court) {
     courts.add(court);
     court.setBranch(this);
   }

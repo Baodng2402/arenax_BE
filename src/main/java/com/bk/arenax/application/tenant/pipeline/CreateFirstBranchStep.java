@@ -6,9 +6,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Order(30)
-public class CreateFirstBranchStep implements TenantCreationStep{
+public class CreateFirstBranchStep implements TenantCreationStep {
   @Override
-  public void execute(TenantCreationContext context){
+  public void execute(TenantCreationContext context) {
     var branchReq = context.getRequest().firstBranch();
     var branch = new Branch();
     branch.setName(branchReq.name());

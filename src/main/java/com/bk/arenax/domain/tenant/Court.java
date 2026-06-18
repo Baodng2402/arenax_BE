@@ -21,17 +21,21 @@ public class Court extends BaseEntity {
   Branch branch;
 
   String name;
+
   @Enumerated(EnumType.STRING)
   CourtSetting setting;
+
   @Enumerated(EnumType.STRING)
   CourtStatus status;
+
   BigDecimal basePrice;
   String description;
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "sport_id", referencedColumnName = "id")
   Sport sport;
 
-  public boolean isBookable(){
-    return status== CourtStatus.ACTIVE;
+  public boolean isBookable() {
+    return status == CourtStatus.ACTIVE;
   }
 }

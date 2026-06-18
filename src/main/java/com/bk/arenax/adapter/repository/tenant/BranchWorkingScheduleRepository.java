@@ -6,6 +6,5 @@ import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface BranchWorkingScheduleRepository extends
-        JpaRepository<BranchWorkingSchedule,Long> , QuerydslPredicateExecutor<Long> {
-}
+public interface BranchWorkingScheduleRepository
+    extends JpaRepository<BranchWorkingSchedule, Long>, QuerydslPredicateExecutor<Long> {}
