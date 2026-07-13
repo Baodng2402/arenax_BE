@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          - id: identity-auth-route
+            uri: ${arenax.gateway.routes.identity-service}
+            predicates:
+              - Path=/api/v1/auth/**
+          - id: identity-users-route
+            uri: ${arenax.gateway.routes.identity-service}
+            predicates:
+              - Path=/api/v1/users/**
+          - id: access-route
+            uri: ${arenax.gateway.routes.access-service}
+            predicates:
+              - Path=/api/v1/access/**
+          - id: tenant-route
+            uri: ${arenax.gateway.routes.tenant-service}
+            predicates:
+              - Path=/api/v1/accounts/**
+          - id: subscription-route
+            uri: ${arenax.gateway.routes.subscription-service}
+            predicates:
+              - Path=/api/v1/subscriptions/**
+          - id: competition-sports-route
+            uri: ${arenax.gateway.routes.competition-service}
+            predicates:
+              - Path=/api/v1/sports/**
+          - id: competition-matches-route
+            uri: ${arenax.gateway.routes.competition-service}
+            predicates:
+              - Path=/api/v1/matches/**
+          - id: ranking-route
+            uri: ${arenax.gateway.routes.ranking-service}
+            predicates:
+              - Path=/api/v1/rankings/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+arenax:
+  gateway:
+    routes:
+      identity-service: http://localhost:8081
+      access-service: http://localhost:8082
+      tenant-service: http://localhost:8083
+      subscription-service: http://localhost:8084
+      competition-service: http://localhost:8085
+      ranking-service: http://localhost:8086

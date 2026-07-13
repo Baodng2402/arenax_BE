@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: identity-service
+
+arenax:
+  security:
+    jwt:
+      issuer: arenax-identity
+      audience: arenax-api
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000

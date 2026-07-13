@@ -1,0 +1,254 @@
+asyncapi: 3.0.0
+info:
+  title: ArenaX Integration Events
+  version: 1.0.0
+  description: Versioned integration events exchanged between ArenaX microservices.
+channels:
+  identity.user.registered:
+    address: identity.user.registered.v1
+    messages:
+      userRegistered:
+        $ref: '#/components/messages/UserRegisteredV1'
+  identity.user.profile-updated:
+    address: identity.user.profile-updated.v1
+    messages:
+      userProfileUpdated:
+        $ref: '#/components/messages/UserProfileUpdatedV1'
+  tenant.personal-account-created:
+    address: tenant.personal-account-created.v1
+    messages:
+      personalAccountCreated:
+        $ref: '#/components/messages/PersonalAccountCreatedV1'
+  access.default-role-granted:
+    address: access.default-role-granted.v1
+    messages:
+      defaultRoleGranted:
+        $ref: '#/components/messages/DefaultRoleGrantedV1'
+  access.authorization-changed:
+    address: access.authorization-changed.v1
+    messages:
+      authorizationChanged:
+        $ref: '#/components/messages/AuthorizationChangedV1'
+  subscription.activated:
+    address: subscription.activated.v1
+    messages:
+      subscriptionActivated:
+        $ref: '#/components/messages/SubscriptionActivatedV1'
+  competition.match-completed:
+    address: competition.match-completed.v1
+    messages:
+      matchCompleted:
+        $ref: '#/components/messages/MatchCompletedV1'
+components:
+  schemas:
+    EventEnvelope:
+      type: object
+      required:
+        - eventId
+        - eventType
+        - eventVersion
+        - occurredAt
+        - correlationId
+        - producer
+        - payload
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        eventVersion:
+          type: integer
+          minimum: 1
+        occurredAt:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+          format: uuid
+        producer:
+          type: string
+        payload:
+          type: object
+    UserRegisteredPayload:
+      type: object
+      required:
+        - userId
+        - email
+        - displayName
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+    UserProfileUpdatedPayload:
+      type: object
+      required:
+        - userId
+        - displayName
+      properties:
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+    PersonalAccountCreatedPayload:
+      type: object
+      required:
+        - userId
+        - accountId
+        - accountName
+      properties:
+        userId:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+    DefaultRoleGrantedPayload:
+      type: object
+      required:
+        - userId
+        - accountId
+        - roleCode
+      properties:
+        userId:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        roleCode:
+          type: string
+    AuthorizationChangedPayload:
+      type: object
+      required:
+        - userId
+        - accountId
+        - roles
+        - permissions
+      properties:
+        userId:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        roles:
+          type: array
+          items:
+            type: string
+        permissions:
+          type: array
+          items:
+            type: string
+    SubscriptionActivatedPayload:
+      type: object
+      required:
+        - accountId
+        - plan
+        - status
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        plan:
+          type: string
+        status:
+          type: string
+    MatchCompletedPayload:
+      type: object
+      required:
+        - matchId
+        - matchType
+        - team1Score
+        - team2Score
+        - winners
+        - losers
+        - finishedAt
+      properties:
+        matchId:
+          type: string
+          format: uuid
+        matchType:
+          type: string
+        team1Score:
+          type: integer
+        team2Score:
+          type: integer
+        winners:
+          type: array
+          items:
+            type: string
+            format: uuid
+        losers:
+          type: array
+          items:
+            type: string
+            format: uuid
+        finishedAt:
+          type: string
+          format: date-time
+  messages:
+    UserRegisteredV1:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              payload:
+                $ref: '#/components/schemas/UserRegisteredPayload'
+    UserProfileUpdatedV1:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              payload:
+                $ref: '#/components/schemas/UserProfileUpdatedPayload'
+    PersonalAccountCreatedV1:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              payload:
+                $ref: '#/components/schemas/PersonalAccountCreatedPayload'
+    DefaultRoleGrantedV1:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              payload:
+                $ref: '#/components/schemas/DefaultRoleGrantedPayload'
+    AuthorizationChangedV1:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              payload:
+                $ref: '#/components/schemas/AuthorizationChangedPayload'
+    SubscriptionActivatedV1:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              payload:
+                $ref: '#/components/schemas/SubscriptionActivatedPayload'
+    MatchCompletedV1:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              payload:
+                $ref: '#/components/schemas/MatchCompletedPayload'

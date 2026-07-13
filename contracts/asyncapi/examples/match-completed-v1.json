@@ -1,0 +1,23 @@
+{
+  "eventId": "5301fced-c585-4322-8f0e-6876a4324d67",
+  "eventType": "competition.match-completed.v1",
+  "eventVersion": 1,
+  "occurredAt": "2026-07-13T10:04:00Z",
+  "correlationId": "2b4fcafb-689c-4b5b-a6c9-7d4ddb036d2a",
+  "producer": "competition-service",
+  "payload": {
+    "matchId": "8ea42f83-56ee-4662-a6da-4146f7ea313a",
+    "matchType": "RANK",
+    "team1Score": 21,
+    "team2Score": 19,
+    "winners": [
+      "48f39a61-330d-4838-9db8-fadb4bf8a4b5",
+      "f3c0ce69-7d6d-469f-b6a1-ad507a0e2c67"
+    ],
+    "losers": [
+      "77f75f74-44b8-4934-a5f7-e20610f84fea",
+      "e3f0fbb0-f77a-4ce3-babf-723f0685d9fb"
+    ],
+    "finishedAt": "2026-07-13T10:04:00Z"
+  }
+}
