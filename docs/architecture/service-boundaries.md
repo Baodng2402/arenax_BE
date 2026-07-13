@@ -1,0 +1,19 @@
+# ArenaX Service Boundaries
+
+## Services
+
+- `identity-service`: credentials, profile basics, refresh sessions, JWT issuance.
+- `access-service`: roles, permissions, account-scoped assignments.
+- `tenant-service`: accounts, ownership, memberships.
+- `subscription-service`: plan lifecycle.
+- `competition-service`: sports, matches, teams, participants.
+- `ranking-service`: player rating, leaderboard, ranking history.
+- `api-gateway`: ingress routing and cross-cutting HTTP concerns.
+
+## Boundary Rules
+
+- Each service owns its own database schema.
+- Services communicate via HTTP only when an immediate answer is required.
+- Preferred cross-service integration is RabbitMQ events with versioned contracts.
+- No cross-service JPA entity, repository, or migration sharing.
+- Public identifiers use UUID.

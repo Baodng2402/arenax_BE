@@ -1,0 +1,13 @@
+{
+  "eventId": "24fec2de-41d2-4f83-8e2f-593937bd5e34",
+  "eventType": "tenant.personal-account-created.v1",
+  "eventVersion": 1,
+  "occurredAt": "2026-07-13T10:01:00Z",
+  "correlationId": "967f8d89-2ef9-4cef-9f72-ff17b6f5a540",
+  "producer": "tenant-service",
+  "payload": {
+    "userId": "48f39a61-330d-4838-9db8-fadb4bf8a4b5",
+    "accountId": "4ebe95a5-8f72-4dce-a143-1b3e0d716ec7",
+    "accountName": "Player One"
+  }
+}
