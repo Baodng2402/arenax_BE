@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+LOG_DIR="$ROOT_DIR/.local/run"
+PID_DIR="$LOG_DIR/pids"
+
+services=(identity access tenant subscription competition ranking gateway)
+
+usage() {
+  cat <<'EOF'
+Usage:
+  bin/run-local-stack start
+  bin/run-local-stack stop
+  bin/run-local-stack status
+
+Commands:
+  start   Start all ArenaX services in the background and write logs to .local/run/
+  stop    Stop processes recorded in .local/run/pids/
+  status  Show whether the recorded processes are still alive
+
+Environment overrides:
+  ARENAX_DB_HOST, ARENAX_DB_PORT, ARENAX_DB_USER, ARENAX_DB_PASSWORD
+  ARENAX_IDENTITY_DB, ARENAX_ACCESS_DB, ARENAX_TENANT_DB,
+  ARENAX_SUBSCRIPTION_DB, ARENAX_COMPETITION_DB, ARENAX_RANKING_DB
+EOF
+}
+
+start_service() {
+  local service="$1"
+  local log_file="$LOG_DIR/${service}.log"
+  local pid_file="$PID_DIR/${service}.pid"
+
+  if [[ -f "$pid_file" ]] && kill -0 "$(cat "$pid_file")" 2>/dev/null; then
+    echo "$service is already running with pid $(cat "$pid_file")"
+    return
+  fi
+
+  echo "Starting $service ..."
+  nohup "$ROOT_DIR/bin/run-service" "$service" >"$log_file" 2>&1 &
+  echo $! >"$pid_file"
+}
+
+stop_service() {
+  local service="$1"
+  local pid_file="$PID_DIR/${service}.pid"
+
+  if [[ ! -f "$pid_file" ]]; then
+    echo "$service is not tracked"
+    return
+  fi
+
+  local pid
+  pid="$(cat "$pid_file")"
+
+  if kill -0 "$pid" 2>/dev/null; then
+    echo "Stopping $service (pid $pid) ..."
+    kill "$pid"
+  else
+    echo "$service pid $pid is not running"
+  fi
+
+  rm -f "$pid_file"
+}
+
+status_service() {
+  local service="$1"
+  local pid_file="$PID_DIR/${service}.pid"
+
+  if [[ ! -f "$pid_file" ]]; then
+    echo "$service: not tracked"
+    return
+  fi
+
+  local pid
+  pid="$(cat "$pid_file")"
+
+  if kill -0 "$pid" 2>/dev/null; then
+    echo "$service: running (pid $pid)"
+  else
+    echo "$service: stale pid $pid"
+  fi
+}
+
+if [[ $# -ne 1 ]]; then
+  usage
+  exit 1
+fi
+
+mkdir -p "$LOG_DIR" "$PID_DIR"
+
+case "$1" in
+  start)
+    for service in "${services[@]}"; do
+      start_service "$service"
+    done
+    echo
+    echo "Logs are under $LOG_DIR"
+    echo "Use 'bin/run-local-stack status' to inspect process status."
+    ;;
+  stop)
+    for service in "${services[@]}"; do
+      stop_service "$service"
+    done
+    ;;
+  status)
+    for service in "${services[@]}"; do
+      status_service "$service"
+    done
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac
