@@ -6,6 +6,8 @@ import com.bk.arenax.ranking.messaging.EventEnvelope;
 import com.bk.arenax.ranking.messaging.MatchCompletedPayload;
 import com.bk.arenax.ranking.repository.PlayerRankingRepository;
 import com.bk.arenax.ranking.repository.RankingHistoryRepository;
+
+import java.time.Instant;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,11 +51,13 @@ public class MatchCompletedHandler {
         loser.setRating(loserAfter);
         loser.setLosses(loser.getLosses() + 1);
 
+        Instant finishedAt = event.payload().finishedAt();
+
         playerRankingRepository.save(winner);
         playerRankingRepository.save(loser);
 
-        rankingHistoryRepository.save(history(event.payload().matchId(), winnerId, winnerBefore, winnerAfter, "WIN"));
-        rankingHistoryRepository.save(history(event.payload().matchId(), loserId, loserBefore, loserAfter, "LOSS"));
+        rankingHistoryRepository.save(history(event.payload().matchId(), winnerId, winnerBefore, winnerAfter, "WIN", finishedAt));
+        rankingHistoryRepository.save(history(event.payload().matchId(), loserId, loserBefore, loserAfter, "LOSS", finishedAt));
     }
 
     private PlayerRanking createRanking(UUID userId) {
@@ -65,13 +69,14 @@ public class MatchCompletedHandler {
         return ranking;
     }
 
-    private RankingHistory history(UUID matchId, UUID userId, int previousRating, int newRating, String result) {
+    private RankingHistory history(UUID matchId, UUID userId, int previousRating, int newRating, String result, Instant occurredAt) {
         RankingHistory history = new RankingHistory();
         history.setMatchId(matchId);
         history.setUserId(userId);
         history.setPreviousRating(previousRating);
         history.setNewRating(newRating);
         history.setResult(result);
+        history.setOccurredAt(occurredAt);
         return history;
     }
 
