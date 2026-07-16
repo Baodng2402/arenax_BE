@@ -7,6 +7,7 @@ import com.bk.arenax.identity.dto.response.TokenResponse;
 import com.bk.arenax.identity.service.AuthenticationService;
 import com.bk.arenax.identity.service.RegistrationService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,16 +16,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
     private final RegistrationService registrationService;
     private final AuthenticationService authenticationService;
-
-    public AuthController(RegistrationService registrationService, AuthenticationService authenticationService) {
-        this.registrationService = registrationService;
-        this.authenticationService = authenticationService;
-    }
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)

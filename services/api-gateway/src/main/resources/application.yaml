@@ -44,12 +44,19 @@ management:
       exposure:
         include: health
 
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    healthcheck:
+      enabled: true
+
 arenax:
   gateway:
     routes:
-      identity-service: http://localhost:8081
-      access-service: http://localhost:8082
-      tenant-service: http://localhost:8083
-      subscription-service: http://localhost:8084
-      competition-service: http://localhost:8085
-      ranking-service: http://localhost:8086
+      identity-service: lb://identity-service
+      access-service: lb://access-service
+      tenant-service: lb://tenant-service
+      subscription-service: lb://subscription-service
+      competition-service: lb://competition-service
+      ranking-service: lb://ranking-service

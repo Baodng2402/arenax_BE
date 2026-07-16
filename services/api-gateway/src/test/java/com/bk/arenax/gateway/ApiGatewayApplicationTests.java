@@ -23,12 +23,12 @@ class ApiGatewayApplicationTests {
 
     @Test
     void contextLoads() {
-        assertThat(gatewayRouteProperties.identityService()).isEqualTo("http://localhost:8081");
-        assertThat(gatewayRouteProperties.accessService()).isEqualTo("http://localhost:8082");
-        assertThat(gatewayRouteProperties.tenantService()).isEqualTo("http://localhost:8083");
-        assertThat(gatewayRouteProperties.subscriptionService()).isEqualTo("http://localhost:8084");
-        assertThat(gatewayRouteProperties.competitionService()).isEqualTo("http://localhost:8085");
-        assertThat(gatewayRouteProperties.rankingService()).isEqualTo("http://localhost:8086");
+        assertThat(gatewayRouteProperties.identityService()).isEqualTo("lb://identity-service");
+        assertThat(gatewayRouteProperties.accessService()).isEqualTo("lb://access-service");
+        assertThat(gatewayRouteProperties.tenantService()).isEqualTo("lb://tenant-service");
+        assertThat(gatewayRouteProperties.subscriptionService()).isEqualTo("lb://subscription-service");
+        assertThat(gatewayRouteProperties.competitionService()).isEqualTo("lb://competition-service");
+        assertThat(gatewayRouteProperties.rankingService()).isEqualTo("lb://ranking-service");
     }
 
     @Test
