@@ -16,3 +16,4 @@ arenax:
       audience: arenax-api
       access-token-ttl-seconds: 900
       refresh-token-ttl-seconds: 2592000
+      secret: ${ARENAX_JWT_SECRET}

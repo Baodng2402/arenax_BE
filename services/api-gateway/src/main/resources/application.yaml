@@ -13,30 +13,6 @@ spring:
             uri: ${arenax.gateway.routes.identity-service}
             predicates:
               - Path=/api/v1/users/**
-          - id: access-route
-            uri: ${arenax.gateway.routes.access-service}
-            predicates:
-              - Path=/api/v1/access/**
-          - id: tenant-route
-            uri: ${arenax.gateway.routes.tenant-service}
-            predicates:
-              - Path=/api/v1/accounts/**
-          - id: subscription-route
-            uri: ${arenax.gateway.routes.subscription-service}
-            predicates:
-              - Path=/api/v1/subscriptions/**
-          - id: competition-sports-route
-            uri: ${arenax.gateway.routes.competition-service}
-            predicates:
-              - Path=/api/v1/sports/**
-          - id: competition-matches-route
-            uri: ${arenax.gateway.routes.competition-service}
-            predicates:
-              - Path=/api/v1/matches/**
-          - id: ranking-route
-            uri: ${arenax.gateway.routes.ranking-service}
-            predicates:
-              - Path=/api/v1/rankings/**
 
 management:
   endpoints:
@@ -55,8 +31,8 @@ arenax:
   gateway:
     routes:
       identity-service: lb://identity-service
-      access-service: lb://access-service
-      tenant-service: lb://tenant-service
-      subscription-service: lb://subscription-service
-      competition-service: lb://competition-service
-      ranking-service: lb://ranking-service
+  security:
+    jwt:
+      issuer: arenax-identity
+      audience: arenax-api
+      secret: ${ARENAX_JWT_SECRET}
