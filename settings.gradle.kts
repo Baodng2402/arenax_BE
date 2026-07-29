@@ -26,4 +26,5 @@ include(
     "services:subscription-service",
     "services:competition-service",
     "services:ranking-service",
+    "services:discovery-server",
 )

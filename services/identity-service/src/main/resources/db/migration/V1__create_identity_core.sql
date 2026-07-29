@@ -1,36 +1,17 @@
-create table users (
+create table users(
     id uuid primary key,
-    email varchar(255) not null unique,
+    email varchar(320) not null,
     password_hash varchar(255) not null,
-    display_name varchar(120) not null,
     status varchar(30) not null,
-    active_account_id uuid,
+    full_name varchar(120),
+    email_verified_at timestamp with time zone,
+    avatar_url varchar(500),
+    last_login_at timestamp with time zone,
+    password_changed_at timestamp with time zone not null,
+    failed_login_attempts integer not null default 0,
+    locked_until timestamp with time zone,
     created_at timestamp with time zone not null,
-    updated_at timestamp with time zone not null
+    updated_at timestamp with time zone not null,
+    version bigint not null,
+    constraint uk_users_email unique (email)
 );
-
-create table refresh_sessions (
-    id uuid primary key,
-    user_id uuid not null,
-    token_hash varchar(128) not null unique,
-    expires_at timestamp with time zone not null,
-    revoked_at timestamp with time zone,
-    created_at timestamp with time zone not null,
-    updated_at timestamp with time zone not null
-);
-
-create index idx_refresh_sessions_user_id on refresh_sessions (user_id);
-
-create table outbox_events (
-    id uuid primary key,
-    event_type varchar(120) not null,
-    event_version integer not null,
-    correlation_id uuid not null,
-    producer varchar(80) not null,
-    occurred_at timestamp with time zone not null,
-    payload clob not null,
-    created_at timestamp with time zone not null,
-    updated_at timestamp with time zone not null
-);
-
-create index idx_outbox_events_type_occurred_at on outbox_events (event_type, occurred_at);
