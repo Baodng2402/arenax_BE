@@ -14,6 +14,16 @@ channels:
     messages:
       userProfileUpdated:
         $ref: '#/components/messages/UserProfileUpdatedV1'
+  identity.user.verification-requested:
+    address: identity.user.verification-requested.v1
+    messages:
+      userVerificationRequested:
+        $ref: '#/components/messages/UserVerificationRequestedV1'
+  identity.user.password-reset-requested:
+    address: identity.user.password-reset-requested.v1
+    messages:
+      userPasswordResetRequested:
+        $ref: '#/components/messages/UserPasswordResetRequestedV1'
   tenant.personal-account-created:
     address: tenant.personal-account-created.v1
     messages:
@@ -96,6 +106,52 @@ components:
           format: uuid
         displayName:
           type: string
+    UserVerificationRequestedPayload:
+      type: object
+      required:
+        - userId
+        - email
+        - displayName
+        - verificationToken
+        - expiresAt
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        verificationToken:
+          type: string
+          description: Confidential one-time token. Do not log or persist outside the mail delivery boundary.
+        expiresAt:
+          type: string
+          format: date-time
+    UserPasswordResetRequestedPayload:
+      type: object
+      required:
+        - userId
+        - email
+        - displayName
+        - resetToken
+        - expiresAt
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        resetToken:
+          type: string
+          description: Confidential one-time token. Do not log or persist outside the mail delivery boundary.
+        expiresAt:
+          type: string
+          format: date-time
     PersonalAccountCreatedPayload:
       type: object
       required:
@@ -212,6 +268,22 @@ components:
             properties:
               payload:
                 $ref: '#/components/schemas/UserProfileUpdatedPayload'
+    UserVerificationRequestedV1:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              payload:
+                $ref: '#/components/schemas/UserVerificationRequestedPayload'
+    UserPasswordResetRequestedV1:
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/EventEnvelope'
+          - type: object
+            properties:
+              payload:
+                $ref: '#/components/schemas/UserPasswordResetRequestedPayload'
     PersonalAccountCreatedV1:
       payload:
         allOf:

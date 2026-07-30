@@ -1,13 +1,311 @@
 package com.bk.arenax.identity.service;
 
+import com.bk.arenax.identity.controller.dto.AuthTokenResponse;
+import com.bk.arenax.identity.controller.dto.UserProfileResponse;
+import com.bk.arenax.identity.domain.EmailVerificationToken;
+import com.bk.arenax.identity.domain.OutboxEvent;
+import com.bk.arenax.identity.domain.PasswordResetToken;
+import com.bk.arenax.identity.domain.RefreshSession;
+import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.messaging.EventEnvelope;
+import com.bk.arenax.identity.messaging.UserPasswordResetRequestedPayload;
+import com.bk.arenax.identity.messaging.UserRegisteredPayload;
+import com.bk.arenax.identity.messaging.UserVerificationRequestedPayload;
+import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
+import com.bk.arenax.identity.repository.OutboxEventRepository;
+import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
+import com.bk.arenax.identity.repository.RefreshSessionRepository;
 import com.bk.arenax.identity.repository.UserRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
-  private final UserRepository userRepo;
+  private static final Duration EMAIL_VERIFICATION_TTL = Duration.ofHours(24);
+  private static final Duration PASSWORD_RESET_TTL = Duration.ofHours(1);
+  private static final Duration LOGIN_LOCK_DURATION = Duration.ofMinutes(15);
+  private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
+  private final UserRepository userRepo;
+  private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+  private final OutboxEventRepository outboxEventRepository;
+  private final RefreshSessionRepository refreshSessionRepository;
+  private final PasswordResetTokenRepository passwordResetTokenRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final ObjectMapper objectMapper;
+  private final AuthenticationManager authenticationManager;
+  private final com.bk.arenax.identity.infrastructure.jwt.JwtService jwtService;
+
+  @Transactional
+  public User register(String email, String password, String fullName){
+    String normalizedEmail = normalizeEmail(email);
+    if(userRepo.existsByEmail(normalizedEmail)){
+      throw new IllegalArgumentException("Email already exists");
+    }
+
+    User user = User.register(
+            normalizedEmail,
+            passwordEncoder.encode(password),
+            fullName == null ? null : fullName.trim(),
+            Instant.now());
+    User savedUser = userRepo.save(user);
+
+    Instant expiresAt = Instant.now().plus(EMAIL_VERIFICATION_TTL);
+    String rawVerificationToken = generateOpaqueToken();
+    emailVerificationTokenRepository.save(
+            EmailVerificationToken.issue(savedUser.getId(), hashToken(rawVerificationToken), expiresAt));
+    outboxEventRepository.save(OutboxEvent.create(
+            "identity.user.verification-requested.v1",
+            1,
+            savedUser.getId(),
+            "identity-service",
+            Instant.now(),
+            writePayload(new EventEnvelope<>(
+                    UUID.randomUUID(),
+                    "identity.user.verification-requested.v1",
+                    1,
+                    Instant.now(),
+                    savedUser.getId(),
+                    "identity-service",
+                    new UserVerificationRequestedPayload(
+                            savedUser.getId(),
+                            savedUser.getEmail(),
+                            savedUser.getFullName(),
+                            rawVerificationToken,
+                            expiresAt)))));
+    return savedUser;
+  }
+
+  @Transactional
+  public void verifyEmail(String rawToken) {
+    Instant now = Instant.now();
+    EmailVerificationToken token = emailVerificationTokenRepository.findByTokenHash(hashToken(rawToken))
+            .orElseThrow(() -> new IllegalArgumentException("Invalid verification token"));
+    if (!token.isAvailableAt(now)) {
+      throw new IllegalStateException("Verification token is no longer valid");
+    }
+
+    User user = userRepo.findById(token.getUserId())
+            .orElseThrow(() -> new IllegalStateException("User not found for verification token"));
+
+    token.consume(now);
+    user.verifyEmail(now);
+
+    outboxEventRepository.save(OutboxEvent.create(
+            "identity.user.registered.v1",
+            1,
+            user.getId(),
+            "identity-service",
+            now,
+            writePayload(new EventEnvelope<>(
+                    UUID.randomUUID(),
+                    "identity.user.registered.v1",
+                    1,
+                    now,
+                    user.getId(),
+                    "identity-service",
+                    new UserRegisteredPayload(
+                            user.getId(),
+                            user.getEmail(),
+                            user.getFullName())))));
+  }
+
+  @Transactional(noRollbackFor = {InvalidCredentialsException.class, AccountLockedException.class})
+  public LoginResult login(String email, String password, UUID accountId) {
+    String normalizedEmail = normalizeEmail(email);
+    User user = userRepo.findByEmail(normalizedEmail).orElse(null);
+    Instant now = Instant.now();
+
+    if (user != null && user.isLockedAt(now)) {
+      throw new AccountLockedException();
+    }
+
+    try {
+      authenticationManager.authenticate(
+              new UsernamePasswordAuthenticationToken(normalizedEmail, password));
+    } catch (AuthenticationException exception) {
+      if (user != null && user.getStatus() == com.bk.arenax.identity.domain.UserStatus.ACTIVE && !user.isLockedAt(now)) {
+        user.recordFailedLogin(now, MAX_FAILED_LOGIN_ATTEMPTS, LOGIN_LOCK_DURATION);
+        if (user.isLockedAt(now)) {
+          throw new AccountLockedException();
+        }
+      }
+      throw new InvalidCredentialsException();
+    } catch (RuntimeException exception) {
+      throw new AuthenticationServiceException("Authentication failed", exception);
+    }
+
+    user = userRepo.findByEmail(normalizedEmail)
+            .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists"));
+    user.recordSuccessfulLogin(now);
+
+    return issueLoginResult(user, accountId, now);
+  }
+
+  @Transactional
+  public LoginResult refresh(String rawRefreshToken) {
+    Instant now = Instant.now();
+    RefreshSession currentSession = refreshSessionRepository.findByTokenHash(hashToken(rawRefreshToken))
+            .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+    if (!currentSession.isAvailableAt(now)) {
+      throw new IllegalArgumentException("Invalid refresh token");
+    }
+
+    User user = userRepo.findById(currentSession.getUserId())
+            .orElseThrow(() -> new IllegalStateException("User not found for refresh session"));
+    currentSession.revoke(now);
+    user.recordSuccessfulLogin(now);
+
+    return issueLoginResult(user, null, now);
+  }
+
+  @Transactional
+  public void logout(String rawRefreshToken) {
+    refreshSessionRepository.findByTokenHash(hashToken(rawRefreshToken))
+            .ifPresent(session -> session.revoke(Instant.now()));
+  }
+
+  @Transactional
+  public void logoutAll(UUID userId) {
+    Instant now = Instant.now();
+    refreshSessionRepository.findAllByUserId(userId)
+            .forEach(session -> session.revoke(now));
+  }
+
+  @Transactional
+  public void requestPasswordReset(String email) {
+    userRepo.findByEmail(normalizeEmail(email)).ifPresent(user -> {
+      Instant now = Instant.now();
+      Instant expiresAt = now.plus(PASSWORD_RESET_TTL);
+      String rawResetToken = generateOpaqueToken();
+      passwordResetTokenRepository.save(
+              PasswordResetToken.issue(user.getId(), hashToken(rawResetToken), expiresAt));
+      outboxEventRepository.save(OutboxEvent.create(
+              "identity.user.password-reset-requested.v1",
+              1,
+              user.getId(),
+              "identity-service",
+              now,
+              writePayload(new EventEnvelope<>(
+                      UUID.randomUUID(),
+                      "identity.user.password-reset-requested.v1",
+                      1,
+                      now,
+                      user.getId(),
+                      "identity-service",
+                      new UserPasswordResetRequestedPayload(
+                              user.getId(),
+                              user.getEmail(),
+                              user.getFullName(),
+                              rawResetToken,
+                              expiresAt)))));
+    });
+  }
+
+  @Transactional
+  public void resetPassword(String rawToken, String newPassword) {
+    Instant now = Instant.now();
+    PasswordResetToken token = passwordResetTokenRepository.findByTokenHash(hashToken(rawToken))
+            .orElseThrow(() -> new IllegalArgumentException("Invalid password reset token"));
+    if (!token.isAvailableAt(now)) {
+      throw new IllegalStateException("Password reset token is no longer valid");
+    }
+
+    User user = userRepo.findById(token.getUserId())
+            .orElseThrow(() -> new IllegalStateException("User not found for password reset token"));
+    token.consume(now);
+    user.changePasswordHash(passwordEncoder.encode(newPassword), now);
+    refreshSessionRepository.findAllByUserId(user.getId()).forEach(session -> session.revoke(now));
+  }
+
+  private LoginResult issueLoginResult(User user, UUID accountId, Instant now) {
+
+    String rawRefreshToken = generateOpaqueToken();
+    RefreshSession refreshSession = refreshSessionRepository.save(
+            RefreshSession.issue(
+                    user.getId(),
+                    hashToken(rawRefreshToken),
+                    now.plusSeconds(jwtService.getRefreshTokenTtlSeconds())));
+
+    String accessToken = jwtService.issueAccessToken(
+            user.getId(),
+            refreshSession.getId(),
+            user.getTokenVersion(),
+            accountId,
+            List.of(),
+            List.of());
+
+    return new LoginResult(
+            new AuthTokenResponse(
+                    accessToken,
+                    "Bearer",
+                    jwtService.getAccessTokenTtlSeconds(),
+                     new UserProfileResponse(
+                             user.getId(),
+                             user.getEmail(),
+                             user.getFullName(),
+                             user.getStatus().name(),
+                            user.getAvatarUrl(),
+                            user.getEmailVerifiedAt(),
+                            accountId,
+                             List.of(),
+                             List.of())),
+             rawRefreshToken);
+  }
+
+  public long refreshTokenTtlSeconds() {
+    return jwtService.getRefreshTokenTtlSeconds();
+  }
+
+  private String normalizeEmail(String email){
+    return email.trim().toLowerCase(Locale.ROOT);
+  }
+
+  private String generateOpaqueToken() {
+    byte[] bytes = new byte[32];
+    SECURE_RANDOM.nextBytes(bytes);
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+  }
+
+  private String hashToken(String rawToken) {
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      return Base64.getUrlEncoder().withoutPadding()
+              .encodeToString(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+    } catch (NoSuchAlgorithmException exception) {
+      throw new IllegalStateException("SHA-256 not available", exception);
+    }
+  }
+
+  private String writePayload(EventEnvelope<?> envelope) {
+    try {
+      return objectMapper.writeValueAsString(envelope);
+    } catch (JsonProcessingException exception) {
+      throw new IllegalStateException("Failed to serialize identity event payload", exception);
+    }
+  }
+
+  public record LoginResult(AuthTokenResponse response, String refreshToken) {
+  }
 
 }

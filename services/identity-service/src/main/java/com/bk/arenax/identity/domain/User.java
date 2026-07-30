@@ -60,6 +60,9 @@ public class User {
   @Column(name="locked_until")
   private Instant lockedUntil;
 
+  @Column(name = "token_version", nullable = false)
+  private int tokenVersion;
+
   @Version
   @Column(nullable = false)
   private Long version;
@@ -104,6 +107,7 @@ public class User {
     passwordChangedAt =Objects.requireNonNull(changedAt);
     failedLoginAttempts = 0;
     lockedUntil = null;
+    tokenVersion++;
   }
   public void verifyEmail(Instant verifiedAt){
     if(emailVerifiedAt!=null){
@@ -133,6 +137,7 @@ public class User {
     user.status=UserStatus.PENDING;
     user.passwordChangedAt=Objects.requireNonNull(registeredAt);
     user.failedLoginAttempts=0;
+    user.tokenVersion = 0;
     return user;
   }
 }

@@ -1,6 +1,15 @@
 spring:
   application:
     name: identity-service
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 500
+            readTimeout: 2000
+            loggerLevel: basic
+            micrometer.enabled: true
 
 eureka:
   client:
@@ -16,4 +25,6 @@ arenax:
       audience: arenax-api
       access-token-ttl-seconds: 900
       refresh-token-ttl-seconds: 2592000
-      secret: ${ARENAX_JWT_SECRET}
+      key-id: ${ARENAX_JWT_KEY_ID:arenax-identity-key-1}
+      private-key-location: ${ARENAX_JWT_PRIVATE_KEY_LOCATION:file:./secrets/identity-private.pem}
+      public-key-location: ${ARENAX_JWT_PUBLIC_KEY_LOCATION:file:./secrets/identity-public.pem}
