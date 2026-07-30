@@ -1,11 +1,11 @@
 package com.bk.arenax.identity.infrastructure.jwt;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -20,22 +20,31 @@ public class JwtService {
   private final JwtProperties jwtProperties;
 
   public String issueAccessToken(UUID userId,
+                                 UUID sessionId,
+                                 int tokenVersion,
                                  UUID accountId,
                                  List<String> roles,
                                  List<String> permissions){
     Instant now = Instant.now();
-    JwtClaimsSet claims = JwtClaimsSet.builder()
+    JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
             .issuer(jwtProperties.issuer())
             .audience(List.of(jwtProperties.audience()))
             .issuedAt(now)
             .expiresAt(now.plusSeconds(jwtProperties.accessTokenTtlSeconds()))
             .subject(userId.toString())
-            .claim("account_id",accountId==null?null:accountId.toString())
+            .notBefore(now)
+            .claim("sid", sessionId.toString())
+            .claim("token_version", tokenVersion)
             .claim("roles",roles)
             .claim("permissions",permissions)
-            .id(UUID.randomUUID().toString())
+            .id(UUID.randomUUID().toString());
+    if (accountId != null) {
+      claimsBuilder.claim("account_id", accountId.toString());
+    }
+    JwtClaimsSet claims = claimsBuilder.build();
+    JwsHeader jwsHeader = JwsHeader.with(SignatureAlgorithm.RS256)
+            .keyId(jwtProperties.keyId())
             .build();
-    JwsHeader jwsHeader = JwsHeader.with(MacAlgorithm.HS256).build();
     return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims)).getTokenValue();
   }
 
@@ -50,7 +59,9 @@ public class JwtService {
             .claim("type","refresh")
             .id(UUID.randomUUID().toString())
             .build();
-    JwsHeader jwsHeader = JwsHeader.with(MacAlgorithm.HS256).build();
+    JwsHeader jwsHeader = JwsHeader.with(SignatureAlgorithm.RS256)
+            .keyId(jwtProperties.keyId())
+            .build();
     return jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,claims)).getTokenValue();
   }
 

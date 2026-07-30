@@ -1,0 +1,336 @@
+openapi: 3.1.0
+info:
+  title: ArenaX Identity API
+  version: 1.0.0
+  description: Public authentication API exposed through API Gateway and implemented by identity-service.
+servers:
+  - url: https://api.arenax.example
+tags:
+  - name: Authentication
+  - name: User Profile
+paths:
+  /api/v1/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new ArenaX user
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered in pending state and verification email requested.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Reserved for future administrative conflict flows. Public clients still receive a generic response body.
+  /api/v1/auth/verify-email:
+    post:
+      tags: [Authentication]
+      summary: Verify email with one-time token
+      operationId: verifyEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '204':
+          description: Email verified and user activated.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '410':
+          description: Token expired or already consumed.
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login with email and password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Returns short-lived access token and sets refresh cookie.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: HttpOnly refresh token cookie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '423':
+          description: User temporarily locked due to repeated failed logins.
+  /api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Rotate refresh token and issue a new access token
+      operationId: refresh
+      requestBody:
+        required: false
+      responses:
+        '200':
+          description: Access token rotated successfully.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: New HttpOnly refresh token cookie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Revoke the current refresh session
+      operationId: logout
+      requestBody:
+        required: false
+      responses:
+        '204':
+          description: Current refresh session revoked and cookie cleared.
+  /api/v1/auth/logout-all:
+    post:
+      tags: [Authentication]
+      summary: Revoke every refresh session for the authenticated user
+      operationId: logoutAll
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: All sessions revoked and cookie cleared.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/auth/request-password-reset:
+    post:
+      tags: [Authentication]
+      summary: Start password reset without leaking account existence
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '202':
+          description: Request accepted regardless of whether the email exists.
+  /api/v1/auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password with one-time token
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '204':
+          description: Password reset completed and all sessions revoked.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '410':
+          description: Token expired or already consumed.
+  /api/v1/users/me:
+    get:
+      tags: [User Profile]
+      summary: Fetch authenticated user profile
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current authenticated profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /.well-known/jwks.json:
+    get:
+      tags: [Authentication]
+      summary: Public JSON Web Key Set for access token verification
+      operationId: getJwks
+      responses:
+        '200':
+          description: Current public signing keys.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JwksResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Validation or token error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, fullName]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        fullName:
+          type: string
+          minLength: 1
+          maxLength: 120
+    RegisterResponse:
+      type: object
+      required: [userId, email, status]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum: [PENDING]
+    VerifyEmailRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          minLength: 32
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+        accountId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional account context. If omitted, Identity may choose a default account from its local projection.
+    AuthTokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn, user]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          minimum: 1
+        user:
+          $ref: '#/components/schemas/UserProfileResponse'
+    PasswordResetRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          minLength: 32
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+    UserProfileResponse:
+      type: object
+      required: [userId, email, fullName, status]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, SUSPENDED, DEACTIVATED]
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        emailVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        accountId:
+          type: string
+          format: uuid
+          nullable: true
+        roles:
+          type: array
+          items:
+            type: string
+        permissions:
+          type: array
+          items:
+            type: string
+    JwksResponse:
+      type: object
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string

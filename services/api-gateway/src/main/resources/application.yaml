@@ -2,17 +2,14 @@ spring:
   application:
     name: api-gateway
   cloud:
-    gateway:
-      mvc:
-        routes:
-          - id: identity-auth-route
-            uri: ${arenax.gateway.routes.identity-service}
-            predicates:
-              - Path=/api/v1/auth/**
-          - id: identity-users-route
-            uri: ${arenax.gateway.routes.identity-service}
-            predicates:
-              - Path=/api/v1/users/**
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 500
+            readTimeout: 2000
+            loggerLevel: basic
+            micrometer.enabled: true
 
 management:
   endpoints:
@@ -35,4 +32,4 @@ arenax:
     jwt:
       issuer: arenax-identity
       audience: arenax-api
-      secret: ${ARENAX_JWT_SECRET}
+      jwk-set-uri: ${ARENAX_JWT_JWKS_URI:http://localhost:8081/.well-known/jwks.json}

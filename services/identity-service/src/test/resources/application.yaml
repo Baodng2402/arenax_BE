@@ -1,0 +1,11 @@
+arenax:
+  security:
+    jwt:
+      issuer: arenax-identity
+      audience: arenax-api
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-seconds: 2592000
+      secret: c3VwZXItc2VjcmV0LXRlc3Qta2V5LXN1cGVyLXNlY3JldC0xMjM0NTY=
+      key-id: identity-test-key
+      private-key-location: classpath:identity-test-private.pem
+      public-key-location: classpath:identity-test-public.pem

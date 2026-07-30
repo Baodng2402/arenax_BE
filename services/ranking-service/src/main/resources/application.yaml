@@ -1,6 +1,15 @@
 spring:
   application:
     name: ranking-service
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 500
+            readTimeout: 2000
+            loggerLevel: basic
+            micrometer.enabled: true
 
 eureka:
   client:
