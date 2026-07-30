@@ -136,6 +136,47 @@ docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_rank
 ./gradlew test
 ```
 
+### Bước 3.5: Tạo Local JWT Key Cho Identity
+
+`identity-service` hiện không tự sinh runtime signing key.
+
+Test thì vẫn chạy được ngay vì test dùng key fixture riêng trong `src/test/resources`, nhưng nếu bạn muốn chạy `identity-service` hoặc `api-gateway` local thật thì cần tự chuẩn bị 1 cặp RSA PEM.
+
+Tạo nhanh bằng `openssl`:
+
+```bash
+mkdir -p secrets
+openssl genrsa -out secrets/identity-private.pem 2048
+openssl rsa -in secrets/identity-private.pem -pubout -out secrets/identity-public.pem
+```
+
+Mặc định `identity-service` sẽ đọc đúng 2 file này:
+
+```text
+./secrets/identity-private.pem
+./secrets/identity-public.pem
+```
+
+Nếu muốn dùng path khác, set env vars:
+
+```bash
+export ARENAX_JWT_KEY_ID=arenax-identity-key-1
+export ARENAX_JWT_PRIVATE_KEY_LOCATION=file:/absolute/path/to/identity-private.pem
+export ARENAX_JWT_PUBLIC_KEY_LOCATION=file:/absolute/path/to/identity-public.pem
+```
+
+Gateway không cần private key. Gateway chỉ cần đọc public JWKS từ Identity. Local default hiện tại là:
+
+```text
+http://localhost:8081/.well-known/jwks.json
+```
+
+Nghĩa là local flow chuẩn sẽ là:
+
+- start `identity-service`
+- start `api-gateway`
+- gateway tự verify access token qua JWKS của identity
+
 ### Bước 4: Start Gateway
 
 ```bash
