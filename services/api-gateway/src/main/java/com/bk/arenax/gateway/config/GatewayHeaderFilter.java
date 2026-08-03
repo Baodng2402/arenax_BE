@@ -5,6 +5,7 @@ import java.util.function.Function;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -52,15 +53,22 @@ public class GatewayHeaderFilter {
                         headers.remove("X-Arenax-Account-Id");
                     }
 
-                    headers.set("X-Arenax-Roles", String.join(",", jwtAuthenticationToken.getToken().getClaimAsStringList("roles")));
-                    headers.set(
-                            "X-Arenax-Permissions",
-                            String.join(",", jwtAuthenticationToken.getToken().getClaimAsStringList("permissions")));
+                    setClaimHeader(headers, jwtAuthenticationToken.getToken(), "roles", "X-Arenax-Roles");
+                    setClaimHeader(headers, jwtAuthenticationToken.getToken(), "permissions", "X-Arenax-Permissions");
                 });
             }
         }
 
         return builder.build();
+    }
+
+    private static void setClaimHeader(HttpHeaders headers, Jwt token, String claim, String headerName) {
+        List<String> values = token.getClaimAsStringList(claim);
+        if (values != null) {
+            headers.set(headerName, String.join(",", values));
+        } else {
+            headers.remove(headerName);
+        }
     }
 
     private String resolveRequestId(ServerRequest request) {

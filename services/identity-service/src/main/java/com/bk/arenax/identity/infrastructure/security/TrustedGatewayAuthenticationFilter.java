@@ -33,10 +33,10 @@ public class TrustedGatewayAuthenticationFilter extends OncePerRequestFilter {
   @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
           throws ServletException, IOException {
-    String userId = request.getHeader(USER_ID_HEADER);
-    if (StringUtils.hasText(userId)) {
+    UUID userId = nullableUuid(request.getHeader(USER_ID_HEADER));
+    if (userId != null) {
       GatewayUserPrincipal principal = new GatewayUserPrincipal(
-              UUID.fromString(userId),
+              userId,
               nullableUuid(request.getHeader(SESSION_ID_HEADER)),
               nullableUuid(request.getHeader(ACCOUNT_ID_HEADER)),
               splitCsv(request.getHeader(ROLES_HEADER)),
@@ -53,7 +53,14 @@ public class TrustedGatewayAuthenticationFilter extends OncePerRequestFilter {
   }
 
   private static UUID nullableUuid(String value) {
-    return StringUtils.hasText(value) ? UUID.fromString(value) : null;
+    if (!StringUtils.hasText(value)) {
+      return null;
+    }
+    try {
+      return UUID.fromString(value);
+    } catch (IllegalArgumentException exception) {
+      return null;
+    }
   }
 
   private static List<String> splitCsv(String value) {

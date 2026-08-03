@@ -133,6 +133,19 @@ class GatewayIntegrationTests {
                 .andExpect(jsonPath("$.permissions").value("MATCH:JOIN,VENUE:BOOK"));
     }
 
+    @Test
+    void protectedRouteOmitsRolesHeadersWhenTokenHasNoRoleClaims() throws Exception {
+        String userId = UUID.randomUUID().toString();
+        String token = issueToken(userId, UUID.randomUUID().toString(), "account-1", null, null);
+
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(userId))
+                .andExpect(jsonPath("$.roles").doesNotExist())
+                .andExpect(jsonPath("$.permissions").doesNotExist());
+    }
+
     private static String issueToken(
             String userId,
             String sessionId,
@@ -141,7 +154,7 @@ class GatewayIntegrationTests {
             List<String> permissions) {
         NimbusJwtEncoder encoder = new NimbusJwtEncoder(new com.nimbusds.jose.jwk.source.ImmutableJWKSet<>(new JWKSet(rsaKey)));
         Instant now = Instant.now();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
+        JwtClaimsSet.Builder claims = JwtClaimsSet.builder()
                 .issuer("arenax-identity")
                 .audience(List.of("arenax-api"))
                 .subject(userId)
@@ -151,13 +164,16 @@ class GatewayIntegrationTests {
                 .claim("sid", sessionId)
                 .claim("token_version", 0)
                 .claim("account_id", accountId)
-                .claim("roles", roles)
-                .claim("permissions", permissions)
-                .id(UUID.randomUUID().toString())
-                .build();
+                .id(UUID.randomUUID().toString());
+        if (roles != null) {
+            claims.claim("roles", roles);
+        }
+        if (permissions != null) {
+            claims.claim("permissions", permissions);
+        }
         return encoder.encode(JwtEncoderParameters.from(
                         JwsHeader.with(SignatureAlgorithm.RS256).keyId(rsaKey.getKeyID()).build(),
-                        claims))
+                        claims.build()))
                 .getTokenValue();
     }
 

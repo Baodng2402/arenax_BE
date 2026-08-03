@@ -83,6 +83,41 @@ class UserControllerIntegrationTests {
     }
 
     @Test
+    void meReturnsUnauthorizedForMalformedTrustedUserIdHeader() throws Exception {
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("X-Arenax-User-Id", "not-a-uuid"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void meReturnsProfileWithBearerAccessToken() throws Exception {
+        UUID userId = registerAndVerifyUser();
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "player1@arenax.dev",
+                                  "password": "Sup3rSecret!"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String accessToken = objectMapper.readTree(loginResult.getResponse().getContentAsString())
+                .path("accessToken")
+                .asText();
+
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(userId.toString()))
+                .andExpect(jsonPath("$.email").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.fullName").value("Player One"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
     void meReturnsNotFoundForUnknownUser() throws Exception {
         mockMvc.perform(get("/api/v1/users/me")
                         .header("X-Arenax-User-Id", UUID.randomUUID().toString()))
