@@ -38,7 +38,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 @Configuration
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, CookieProperties.class})
 
 public class SecurityConfiguration {
 
@@ -103,11 +103,14 @@ public class SecurityConfiguration {
   }
 
   @Bean
-  SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
+  SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                          TrustedGatewayAuthenticationFilter trustedGatewayAuthenticationFilter) throws Exception{
     http.csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth->auth
                     .requestMatchers(SecurityEndpoints.PUBLIC).permitAll()
                     .anyRequest().authenticated())
+            .addFilterBefore(trustedGatewayAuthenticationFilter,
+                    org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
             .oauth2ResourceServer(oauth2->oauth2.jwt(
                     Customizer.withDefaults()
             ))

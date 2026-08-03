@@ -26,6 +26,9 @@ public class RefreshSession {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "account_id")
+    private UUID accountId;
+
     @Column(name = "token_hash", nullable = false, length = 128)
     private String tokenHash;
 
@@ -57,10 +60,15 @@ public class RefreshSession {
     }
 
     public static RefreshSession issue(UUID userId, String tokenHash, Instant expiresAt) {
+        return issue(userId, tokenHash, expiresAt, null);
+    }
+
+    public static RefreshSession issue(UUID userId, String tokenHash, Instant expiresAt, UUID accountId) {
         RefreshSession refreshSession = new RefreshSession();
         refreshSession.userId = Objects.requireNonNull(userId);
         refreshSession.tokenHash = Objects.requireNonNull(tokenHash);
         refreshSession.expiresAt = Objects.requireNonNull(expiresAt);
+        refreshSession.accountId = accountId;
         return refreshSession;
     }
 

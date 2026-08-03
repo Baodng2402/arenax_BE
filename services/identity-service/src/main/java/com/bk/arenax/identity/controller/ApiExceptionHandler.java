@@ -2,7 +2,9 @@ package com.bk.arenax.identity.controller;
 
 import com.bk.arenax.identity.controller.dto.ErrorResponse;
 import com.bk.arenax.identity.service.AccountLockedException;
+import com.bk.arenax.identity.service.AccountStatusException;
 import com.bk.arenax.identity.service.InvalidCredentialsException;
+import com.bk.arenax.identity.service.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,6 +13,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(AccountStatusException.class)
+    ResponseEntity<ErrorResponse> handleAccountStatus(AccountStatusException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(exception.getCode(), exception.getMessage()));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("USER_NOT_FOUND", exception.getMessage()));
+    }
 
     @ExceptionHandler(InvalidCredentialsException.class)
     ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException exception) {

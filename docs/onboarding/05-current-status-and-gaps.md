@@ -27,11 +27,20 @@ Hiện tại event handling mới dừng ở service-layer flow và outbox persi
 
 ### Auth Runtime Hoàn Chỉnh
 
-Chưa hoàn thiện:
+Đã hoàn thiện:
 
-- refresh token lifecycle đúng nghĩa
-- hashed refresh token persistence rule
-- gateway security policy hoàn chỉnh cho mọi route
+- refresh token rotation + reuse detection (reuse → revoke toàn bộ session + 410)
+- refresh token lưu dạng SHA-256 hash, session bảng `refresh_sessions` (kèm `account_id`)
+- chặn login cho user SUSPENDED/DEACTIVATED (403); PENDING vẫn login được để app hiện thông báo verify
+- endpoint `GET/PATCH /api/v1/users/me` — trust header `X-Arenax-*` từ gateway qua `TrustedGatewayAuthenticationFilter`
+- cookie `arenax_refresh_token` secure flag config-driven (`arenax.security.cookie.secure`, mặc định false local)
+- `account_id` được giữ xuyên qua refresh (migration V5)
+
+Còn thiếu:
+
+- roles/permissions trong JWT (đang hardcode rỗng — cần access-service để cấp)
+- validate `accountId` thuộc về user thật (cần tenant membership)
+- gateway security policy cho mọi route còn lại (tenant/access/subscription/competition/ranking)
 - service-to-service auth
 
 ### Infrastructure

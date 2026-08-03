@@ -7,6 +7,7 @@ import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.PasswordResetToken;
 import com.bk.arenax.identity.domain.RefreshSession;
 import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.domain.UserStatus;
 import com.bk.arenax.identity.messaging.EventEnvelope;
 import com.bk.arenax.identity.messaging.UserPasswordResetRequestedPayload;
 import com.bk.arenax.identity.messaging.UserRegisteredPayload;
@@ -140,6 +141,10 @@ public class UserService {
       throw new AccountLockedException();
     }
 
+    if (user != null && (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.DEACTIVATED)) {
+      throw new AccountStatusException(user.getStatus());
+    }
+
     try {
       authenticationManager.authenticate(
               new UsernamePasswordAuthenticationToken(normalizedEmail, password));
@@ -162,21 +167,29 @@ public class UserService {
     return issueLoginResult(user, accountId, now);
   }
 
-  @Transactional
+  @Transactional(noRollbackFor = IllegalStateException.class)
   public LoginResult refresh(String rawRefreshToken) {
     Instant now = Instant.now();
     RefreshSession currentSession = refreshSessionRepository.findByTokenHash(hashToken(rawRefreshToken))
             .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
     if (!currentSession.isAvailableAt(now)) {
+      if (currentSession.getRevokedAt() != null) {
+        refreshSessionRepository.findAllByUserId(currentSession.getUserId())
+                .forEach(session -> session.revoke(now));
+        throw new IllegalStateException("Refresh token reuse detected; all sessions revoked");
+      }
       throw new IllegalArgumentException("Invalid refresh token");
     }
 
     User user = userRepo.findById(currentSession.getUserId())
             .orElseThrow(() -> new IllegalStateException("User not found for refresh session"));
+    if (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.DEACTIVATED) {
+      throw new AccountStatusException(user.getStatus());
+    }
     currentSession.revoke(now);
     user.recordSuccessfulLogin(now);
 
-    return issueLoginResult(user, null, now);
+    return issueLoginResult(user, currentSession.getAccountId(), now);
   }
 
   @Transactional
@@ -245,7 +258,8 @@ public class UserService {
             RefreshSession.issue(
                     user.getId(),
                     hashToken(rawRefreshToken),
-                    now.plusSeconds(jwtService.getRefreshTokenTtlSeconds())));
+                    now.plusSeconds(jwtService.getRefreshTokenTtlSeconds()),
+                    accountId));
 
     String accessToken = jwtService.issueAccessToken(
             user.getId(),
@@ -275,6 +289,37 @@ public class UserService {
 
   public long refreshTokenTtlSeconds() {
     return jwtService.getRefreshTokenTtlSeconds();
+  }
+
+  @Transactional(readOnly = true)
+  public UserProfileResponse getProfile(UUID userId, UUID accountId) {
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+    return toProfileResponse(user, accountId);
+  }
+
+  @Transactional
+  public UserProfileResponse updateProfile(UUID userId, String fullName, String avatarUrl, UUID accountId) {
+    if (fullName != null && fullName.isBlank()) {
+      throw new IllegalArgumentException("Full name must not be blank");
+    }
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+    user.updateProfile(fullName, avatarUrl);
+    return toProfileResponse(user, accountId);
+  }
+
+  private UserProfileResponse toProfileResponse(User user, UUID accountId) {
+    return new UserProfileResponse(
+            user.getId(),
+            user.getEmail(),
+            user.getFullName(),
+            user.getStatus().name(),
+            user.getAvatarUrl(),
+            user.getEmailVerifiedAt(),
+            accountId,
+            List.of(),
+            List.of());
   }
 
   private String normalizeEmail(String email){

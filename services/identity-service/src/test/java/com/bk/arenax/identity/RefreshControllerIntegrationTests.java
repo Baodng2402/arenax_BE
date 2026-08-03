@@ -101,6 +101,60 @@ class RefreshControllerIntegrationTests {
         assertThat(jwt.getClaimAsString("sid")).isEqualTo(refreshSessions.get(1).getId().toString());
     }
 
+    @Test
+    void refreshWithReusedTokenRevokesAllSessionsAndReturnsGone() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        Cookie originalRefreshCookie = loginUser();
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .cookie(originalRefreshCookie))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .cookie(originalRefreshCookie))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"))
+                .andExpect(jsonPath("$.message").value("Refresh token reuse detected; all sessions revoked"));
+
+        List<RefreshSession> refreshSessions = refreshSessionRepository.findAll();
+        assertThat(refreshSessions).hasSize(2);
+        assertThat(refreshSessions).allSatisfy(session ->
+                assertThat(session.getRevokedAt()).isNotNull());
+    }
+
+    @Test
+    void refreshPreservesAccountIdInNewAccessToken() throws Exception {
+        registerAndVerifyUser();
+        UUID accountId = UUID.randomUUID();
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "player1@arenax.dev",
+                                  "password": "Sup3rSecret!",
+                                  "accountId": "%s"
+                                }
+                                """.formatted(accountId)))
+                .andExpect(status().isOk())
+                .andReturn();
+        Cookie refreshCookie = loginResult.getResponse().getCookie("arenax_refresh_token");
+
+        MvcResult refreshResult = mockMvc.perform(post("/api/v1/auth/refresh")
+                        .cookie(refreshCookie))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode responseBody = objectMapper.readTree(refreshResult.getResponse().getContentAsString());
+        Jwt jwt = jwtDecoder.decode(responseBody.path("accessToken").asText());
+        assertThat(jwt.getClaimAsString("account_id")).isEqualTo(accountId.toString());
+        assertThat(responseBody.path("user").path("accountId").asText()).isEqualTo(accountId.toString());
+
+        List<RefreshSession> refreshSessions = refreshSessionRepository.findAll();
+        assertThat(refreshSessions).anySatisfy(session ->
+                assertThat(session.getAccountId()).isEqualTo(accountId));
+    }
+
     private UUID registerAndVerifyUser() throws Exception {
         MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

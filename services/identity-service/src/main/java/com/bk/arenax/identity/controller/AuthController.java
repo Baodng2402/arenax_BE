@@ -7,6 +7,7 @@ import com.bk.arenax.identity.controller.dto.RegisterRequest;
 import com.bk.arenax.identity.controller.dto.RegisterResponse;
 import com.bk.arenax.identity.controller.dto.ResetPasswordRequest;
 import com.bk.arenax.identity.controller.dto.VerifyEmailRequest;
+import com.bk.arenax.identity.infrastructure.security.CookieProperties;
 import com.bk.arenax.identity.service.UserService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UserService userService;
+    private final CookieProperties cookieProperties;
 
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -85,7 +87,7 @@ public class AuthController {
     private ResponseEntity<AuthTokenResponse> withRefreshCookie(UserService.LoginResult result) {
         ResponseCookie refreshCookie = ResponseCookie.from("arenax_refresh_token", result.refreshToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieProperties.secure())
                 .sameSite("Strict")
                 .path("/api/v1/auth")
                 .maxAge(userService.refreshTokenTtlSeconds())
@@ -98,7 +100,7 @@ public class AuthController {
     private ResponseEntity<Void> clearRefreshCookie() {
         ResponseCookie refreshCookie = ResponseCookie.from("arenax_refresh_token", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieProperties.secure())
                 .sameSite("Strict")
                 .path("/api/v1/auth")
                 .maxAge(0)

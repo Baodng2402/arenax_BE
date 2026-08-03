@@ -183,22 +183,67 @@ class LoginControllerIntegrationTests {
         assertThat(user.getLockedUntil()).isAfter(java.time.Instant.now());
     }
 
-    private UUID registerAndVerifyUser() throws Exception {
-        MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
+    @Test
+    void loginAsUnverifiedUserReturnsPendingProfile() throws Exception {
+        registerUser();
+
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "email": "player1@arenax.dev",
-                                  "password": "Sup3rSecret!",
-                                  "fullName": "Player One"
+                                  "password": "Sup3rSecret!"
                                 }
                                 """))
-                .andExpect(status().isCreated())
-                .andReturn();
+                .andExpect(status().isOk())
+                .andExpect(cookie().exists("arenax_refresh_token"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.user.status").value("PENDING"))
+                .andExpect(jsonPath("$.user.emailVerifiedAt").value(org.hamcrest.Matchers.nullValue()));
+    }
 
-        UUID userId = UUID.fromString(objectMapper.readTree(registerResult.getResponse().getContentAsString())
-                .path("userId")
-                .asText());
+    @Test
+    void loginRejectsSuspendedAccountWithForbidden() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        User user = userRepository.findById(userId).orElseThrow();
+        user.suspend();
+        userRepository.save(user);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "player1@arenax.dev",
+                                  "password": "Sup3rSecret!"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_SUSPENDED"))
+                .andExpect(jsonPath("$.message").value("Account is suspended"));
+    }
+
+    @Test
+    void loginRejectsDeactivatedAccountWithForbidden() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        User user = userRepository.findById(userId).orElseThrow();
+        user.deactivate();
+        userRepository.save(user);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "player1@arenax.dev",
+                                  "password": "Sup3rSecret!"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_DEACTIVATED"))
+                .andExpect(jsonPath("$.message").value("Account is deactivated"));
+    }
+
+    private UUID registerAndVerifyUser() throws Exception {
+        UUID userId = registerUser();
 
         String verificationToken = extractVerificationToken(outboxEventRepository.findAll());
 
@@ -212,6 +257,24 @@ class LoginControllerIntegrationTests {
                 .andExpect(status().isNoContent());
 
         return userId;
+    }
+
+    private UUID registerUser() throws Exception {
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "player1@arenax.dev",
+                                  "password": "Sup3rSecret!",
+                                  "fullName": "Player One"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return UUID.fromString(objectMapper.readTree(registerResult.getResponse().getContentAsString())
+                .path("userId")
+                .asText());
     }
 
     private String extractVerificationToken(List<OutboxEvent> outboxEvents) throws Exception {

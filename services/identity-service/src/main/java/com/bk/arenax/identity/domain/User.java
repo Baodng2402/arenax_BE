@@ -120,6 +120,15 @@ public class User {
     status=UserStatus.ACTIVE;
   }
 
+  public void updateProfile(String fullName, String avatarUrl){
+    if (fullName != null && !fullName.isBlank()) {
+      this.fullName = fullName.trim();
+    }
+    if (avatarUrl != null && !avatarUrl.isBlank()) {
+      this.avatarUrl = avatarUrl.trim();
+    }
+  }
+
   public void suspend(){
     status = UserStatus.SUSPENDED;
   }

@@ -20,6 +20,8 @@ eureka:
 
 arenax:
   security:
+    cookie:
+      secure: ${ARENAX_COOKIE_SECURE:false}
     jwt:
       issuer: arenax-identity
       audience: arenax-api
