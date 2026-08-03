@@ -119,6 +119,14 @@ docker run --name arenax-postgres \
   -d postgres:16
 ```
 
+> ⚠️ Nếu dùng `compose.yaml` ở root (`docker compose up -d`) thì password là **`12345`**, khác default `postgres`. Lúc đó phải export trước khi chạy service:
+>
+> ```bash
+> export ARENAX_DB_PASSWORD=12345
+> ```
+>
+> `compose.yaml` mount `docker/postgres/init-databases.sql` nên các DB dưới sẽ được tạo tự động.
+
 ### Bước 2: Tạo Database
 
 ```bash
@@ -138,17 +146,32 @@ docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_rank
 
 ### Bước 3.5: Tạo Local JWT Key Cho Identity
 
-`identity-service` hiện không tự sinh runtime signing key.
+`identity-service` không tự sinh runtime signing key.
 
 Test thì vẫn chạy được ngay vì test dùng key fixture riêng trong `src/test/resources`, nhưng nếu bạn muốn chạy `identity-service` hoặc `api-gateway` local thật thì cần tự chuẩn bị 1 cặp RSA PEM.
 
-Tạo nhanh bằng `openssl`:
+Cách nhanh nhất — script sinh key sẵn (đúng format PKCS#8, không ghi đè key cũ):
+
+```bash
+bin/generate-jwt-keys.sh
+```
+
+Script này tạo:
+
+```text
+secrets/identity-private.pem  (PKCS#8 — "BEGIN PRIVATE KEY")
+secrets/identity-public.pem   (X.509 — "BEGIN PUBLIC KEY")
+```
+
+Nếu muốn tự chạy `openssl` thì phải dùng đúng format sau:
 
 ```bash
 mkdir -p secrets
-openssl genrsa -out secrets/identity-private.pem 2048
-openssl rsa -in secrets/identity-private.pem -pubout -out secrets/identity-public.pem
+openssl genpkey -algorithm RSA -out secrets/identity-private.pem -pkeyopt rsa_keygen_bits:2048
+openssl pkey -in secrets/identity-private.pem -pubout -out secrets/identity-public.pem
 ```
+
+> ⚠️ **Không dùng `openssl genrsa`** — nó tạo PKCS#1 (`BEGIN RSA PRIVATE KEY`), trong khi `identity-service` đọc key bằng `PKCS8EncodedKeySpec` nên service sẽ fail khi start với lỗi `InvalidKeySpecException`.
 
 Mặc định `identity-service` sẽ đọc đúng 2 file này:
 
@@ -165,6 +188,8 @@ export ARENAX_JWT_PRIVATE_KEY_LOCATION=file:/absolute/path/to/identity-private.p
 export ARENAX_JWT_PUBLIC_KEY_LOCATION=file:/absolute/path/to/identity-public.pem
 ```
 
+`secrets/` đã nằm trong `.gitignore` — không bao giờ commit private key lên git.
+
 Gateway không cần private key. Gateway chỉ cần đọc public JWKS từ Identity. Local default hiện tại là:
 
 ```text
@@ -179,9 +204,22 @@ Nghĩa là local flow chuẩn sẽ là:
 
 ### Bước 4: Start Gateway
 
+> ⚠️ **Quan trọng — Eureka:** route mặc định của gateway là `lb://identity-service` (load balancer qua discovery). Repo này **không có Eureka server**, nên nếu chạy gateway local mà không override route, mọi request sẽ lỗi `No servers available for identity-service`.
+
+Không có Eureka, override route sang URL trực tiếp khi start:
+
 ```bash
-bin/run-service gateway
+bin/run-service gateway --arenax.gateway.routes.identity-service=http://localhost:8081
 ```
+
+Hoặc Gradle trực tiếp:
+
+```bash
+./gradlew :services:api-gateway:bootRun \
+  --args='--spring.profiles.active=local --arenax.gateway.routes.identity-service=http://localhost:8081'
+```
+
+(Khi nào repo có Eureka server chạy local thì bỏ override này đi.)
 
 ### Bước 5: Start Service Bạn Đang Làm
 
@@ -197,6 +235,37 @@ Hoặc bấm Start trong IDE với profile `local`.
 Nếu bạn muốn chạy 2-3 service cùng lúc bằng IntelliJ, dùng nhiều Run Configuration hoặc Compound configuration theo hướng dẫn tại:
 
 - `docs/development/intellij-setup.md`
+
+### Bước 6: Smoke Test Luồng Identity
+
+Sau khi `identity-service` (8081) và `api-gateway` (8080) đã chạy, test luồng end-to-end qua gateway:
+
+```bash
+# 1. Đăng ký user mới (trả về 201, user ở trạng thái PENDING)
+curl -X POST localhost:8080/api/v1/auth/register -H 'Content-Type: application/json' \
+  -d '{"email":"dev@arenax.dev","password":"Sup3rSecret!","fullName":"Dev User"}'
+
+# 2. Lấy verification token từ bảng outbox (chưa có email thật — RabbitMQ chưa wiring)
+psql -U postgres -d arenax_identity -c \
+  "select payload from outbox_events where event_type='identity.user.verification-requested.v1' order by created_at desc limit 1;"
+# → payload chứa "verificationToken": "...", lấy giá trị đó cho bước 3
+
+# 3. Verify email (user chuyển sang ACTIVE)
+curl -X POST localhost:8080/api/v1/auth/verify-email -H 'Content-Type: application/json' \
+  -d '{"token":"<verificationToken>"}'
+
+# 4. Login — lưu cookie refresh vào file, accessToken nằm trong JSON response
+curl -c /tmp/cookies.txt -X POST localhost:8080/api/v1/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"dev@arenax.dev","password":"Sup3rSecret!"}'
+
+# 5. Lấy profile qua gateway (JWT được gateway verify + chèn header X-Arenax-*)
+curl localhost:8080/api/v1/users/me -H "Authorization: Bearer <accessToken>"
+
+# 6. Refresh token rotation (cookie cũ bị revoke, trả cookie mới)
+curl -b /tmp/cookies.txt -X POST localhost:8080/api/v1/auth/refresh
+```
+
+Chú ý: user **PENDING** vẫn login được (200, `status=PENDING` trong response) — app nên hiện thông báo verify. User **SUSPENDED/DEACTIVATED** sẽ bị chặn với 403.
 
 ## 7. Khi Nào Dùng Script, Khi Nào Dùng IDE
 
