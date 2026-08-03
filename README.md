@@ -80,7 +80,8 @@ This repository currently focuses on source architecture and service-level tests
 - VPS deployment and CI/CD are not implemented yet.
 - Shared runtime defaults live in each service's `src/main/resources/application.yaml`, while local run settings live in `application-local.yaml`.
 - Gateway default downstream URLs point to `localhost:8081` through `localhost:8086`.
-- Helper scripts are available under `bin/run-service` and `bin/run-local-stack` to reduce `bootRun` command length.
+- Helper scripts are available under `bin/run-service`, `bin/run-local-stack`, and `bin/generate-jwt-keys.sh` to reduce `bootRun` command length.
+- Local run guide: `docs/development/running-services.md` (includes JWT key setup, Eureka caveat, and an end-to-end smoke test).
 
 ## Documentation Index
 
