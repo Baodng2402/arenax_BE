@@ -1,4 +1,4 @@
-package com.bk.arenax.access.domain.entity;
+package com.bk.arenax.identity.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,17 +14,20 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "permissions")
-public class Permission extends BaseEntity {
+@Table(name = "role_assignments")
+public class RoleAssignment extends BaseEntity {
 
     @Id
     private UUID id;
 
-    @Column(nullable = false, length = 80, unique = true)
-    private String code;
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
 
-    @Column(nullable = false, length = 120)
-    private String name;
+    @Column(name = "account_id", nullable = false)
+    private UUID accountId;
+
+    @Column(name = "role_code", nullable = false, length = 80)
+    private String roleCode;
 
     @PrePersist
     void assignId() {

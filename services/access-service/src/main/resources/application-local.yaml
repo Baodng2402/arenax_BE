@@ -1,8 +1,0 @@
-server:
-  port: 8082
-
-spring:
-  datasource:
-    url: jdbc:postgresql://${ARENAX_DB_HOST:localhost}:${ARENAX_DB_PORT:5432}/${ARENAX_ACCESS_DB:arenax_access}
-    username: ${ARENAX_DB_USER:postgres}
-    password: ${ARENAX_DB_PASSWORD:postgres}

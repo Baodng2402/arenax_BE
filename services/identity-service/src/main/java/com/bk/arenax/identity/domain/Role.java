@@ -1,4 +1,4 @@
-package com.bk.arenax.access.domain.entity;
+package com.bk.arenax.identity.domain;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;

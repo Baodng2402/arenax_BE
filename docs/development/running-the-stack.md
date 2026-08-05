@@ -1,419 +1,124 @@
 # Running The Stack Locally
 
-Tài liệu này hướng dẫn chạy project sau khi restructure sang multi-project microservices.
+Tài liệu này hướng dẫn chi tiết cách chạy hệ thống microservices Arenax-BE trên môi trường local, tận dụng **Docker Compose**, **Spring Boot Docker Compose Integration**, và cấu trúc multi-module mới.
 
-Nó viết theo trạng thái hiện tại của repo, không giả định đã có Docker Compose hoặc RabbitMQ runtime wiring.
+---
 
-## 1. Hiểu Đúng Trước Khi Chạy
+## 1. Tổng Quan Kiến Trúc Local Runtime
 
-Hiện tại có 3 sự thật quan trọng:
+Hệ thống hiện tại bao gồm:
+- **`discovery-server`** (Eureka Server): Cổng Service Discovery (port `8761`).
+- **`api-gateway`**: API Gateway định tuyến request (port `8080`).
+- **`identity-service`**: Quản lý Authentication (JWT) và RBAC (đã hợp nhất access-service).
+- **`tenant-service`**, **`subscription-service`**, **`competition-service`**, **`ranking-service`**: Các service nghiệp vụ.
+- **PostgreSQL & Redis**: Infrastructure cơ sở dữ liệu và cache.
 
-1. Root project không còn là app runnable.
-2. `api-gateway` start được ngay.
-3. Các persistence service nên chạy với Spring profile `local`.
+Nhờ cấu hình **`spring-boot-docker-compose`** ở root, khi bạn chạy bất kỳ service nào (`bootRun`), Spring Boot sẽ **tự động kiểm tra và khởi chạy các container (Postgres, Redis, Eureka) từ `compose.yaml`** ở root project nếu chúng chưa chạy. Nếu đã chạy, Spring Boot sẽ tự động kết nối mà không làm gián đoạn.
 
-Nếu bạn thử kiểu monolith cũ và thấy app không lên, đó là vì kiến trúc đã đổi.
+---
 
-Nếu bạn cần hướng dẫn chi tiết riêng cho IntelliJ và chạy 2-3 service cùng lúc trong IDE, xem thêm:
+## 2. Bước 1: Kiểm Tra Build & Tests
 
-- `docs/development/intellij-setup.md`
-
-## 2. Bước 1: Kiểm Tra Build Trước
-
-Từ root repo:
+Trước khi chạy runtime, hãy đảm bảo toàn bộ project compile và test thành công:
 
 ```bash
 ./gradlew test
 ```
 
-Nếu bước này chưa xanh thì chưa nên chạy service runtime.
+---
 
-## 3. Bước 2: Xem Các Module Hiện Có
+## 3. Bước 2: Khởi Chạy Hạ Tầng (Docker Compose)
 
-```bash
-./gradlew projects
-```
-
-Bạn sẽ thấy các module dưới `services:`.
-
-Các app runnable hiện tại nằm ở:
-
-- `:services:api-gateway`
-- `:services:identity-service`
-- `:services:access-service`
-- `:services:tenant-service`
-- `:services:subscription-service`
-- `:services:competition-service`
-- `:services:ranking-service`
-
-## 4. Bước 3: Start Gateway Trước Để Smoke Check
-
-Đây là app dễ start nhất vì không phụ thuộc datasource.
+Bạn có thể để Spring Boot tự động bật hạ tầng khi chạy service, hoặc chủ động khởi chạy trước toàn bộ hạ tầng bằng Docker Compose:
 
 ```bash
-./gradlew :services:api-gateway:bootRun
+docker compose up -d
 ```
 
-Expected result:
+Lệnh này sẽ khởi động:
+- **Postgres** (port `5432`, tự động tạo các database cần thiết qua init script).
+- **Redis** (port `6379`).
+- **Discovery Server (Eureka)** (port `8761`).
 
-- app start thành công
-- Tomcat lên ở port `8080`
-- `/actuator/health` có thể truy cập được
-
-Ví dụ check nhanh:
-
+Kiểm tra trạng thái container:
 ```bash
-curl http://localhost:8080/actuator/health
+docker compose ps
 ```
 
-## 5. Vì Sao Các Service Persistence Không Lên Khi Chạy Trần
+---
 
-Ví dụ command này:
+## 4. Bước 3: Chạy Các Service
 
-```bash
-./gradlew :services:identity-service:bootRun
-```
+Bạn có thể chạy service thông qua Gradle CLI với profile `local`:
 
-hiện sẽ fail nếu chưa truyền datasource config hoặc chưa bật profile `local`.
-
-Lỗi expected:
-
-```text
-Failed to configure a DataSource: 'url' attribute is not specified
-```
-
-Lý do là:
-
-- service có Spring Data JPA + Flyway
-- nhưng `application.yaml` mặc định chưa có local datasource config
-- runtime classpath main cũng không có embedded H2 như test classpath
-
-Vì vậy local runtime nên dùng:
-
-```bash
---spring.profiles.active=local
-```
-
-## 6. Bước 4: Chuẩn Bị Một PostgreSQL Local
-
-Bạn có thể dùng PostgreSQL cài sẵn hoặc chạy nhanh bằng Docker.
-
-### Option A: PostgreSQL local đã cài sẵn
-
-Chỉ cần đảm bảo bạn có một PostgreSQL server đang chạy trên `localhost:5432`.
-
-### Option B: PostgreSQL bằng Docker
-
-```bash
-docker run --name arenax-postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  -d postgres:16
-```
-
-Chờ vài giây rồi tạo các database:
-
-```bash
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_identity;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_access;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_tenant;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_subscription;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_competition;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_ranking;"
-```
-
-## 7. Bước 5: Start Từng Service Với Profile `local`
-
-Nếu không muốn nhớ command dài, repo giờ có sẵn helper script:
-
-```bash
-bin/run-service gateway
-bin/run-service identity
-bin/run-service competition
-```
-
-Script này tự:
-
-- tên service -> Gradle subproject
-- bật profile `local`
-- dùng port và datasource từ `application-local.yaml`
-
-Default database config của profile `local`:
-
-```text
-host     localhost
-port     5432
-user     postgres
-password postgres
-```
-
-Bạn có thể override bằng environment variables như:
-
-```bash
-ARENAX_DB_HOST=localhost \
-ARENAX_DB_PORT=5432 \
-ARENAX_DB_USER=postgres \
-ARENAX_DB_PASSWORD=postgres \
-bin/run-service identity
-```
-
-Hoặc override database name riêng cho từng service:
-
-```bash
-ARENAX_IDENTITY_DB=my_identity_db bin/run-service identity
-```
-
-### 7.1 Identity Service
-
+### 4.1. Chạy Identity Service (Authentication & RBAC)
 ```bash
 ./gradlew :services:identity-service:bootRun --args='--spring.profiles.active=local'
 ```
 
-Equivalent helper command:
-
-```bash
-bin/run-service identity
-```
-
-### 7.2 Access Service
-
-```bash
-./gradlew :services:access-service:bootRun --args='--spring.profiles.active=local'
-```
-
-Equivalent helper command:
-
-```bash
-bin/run-service access
-```
-
-### 7.3 Tenant Service
-
-```bash
-./gradlew :services:tenant-service:bootRun --args='--spring.profiles.active=local'
-```
-
-Equivalent helper command:
-
-```bash
-bin/run-service tenant
-```
-
-### 7.4 Subscription Service
-
-```bash
-./gradlew :services:subscription-service:bootRun --args='--spring.profiles.active=local'
-```
-
-Equivalent helper command:
-
-```bash
-bin/run-service subscription
-```
-
-### 7.5 Competition Service
-
-```bash
-./gradlew :services:competition-service:bootRun --args='--spring.profiles.active=local'
-```
-
-Equivalent helper command:
-
-```bash
-bin/run-service competition
-```
-
-### 7.6 Ranking Service
-
-```bash
-./gradlew :services:ranking-service:bootRun --args='--spring.profiles.active=local'
-```
-
-Equivalent helper command:
-
-```bash
-bin/run-service ranking
-```
-
-### 7.7 API Gateway
-
-Sau khi các downstream service đã lên đúng port:
-
+### 4.2. Chạy API Gateway
 ```bash
 ./gradlew :services:api-gateway:bootRun --args='--spring.profiles.active=local'
 ```
 
-Equivalent helper command:
+### 4.3. Chạy Các Service Nghiệp Vụ Khác
+- **Tenant Service:**
+  ```bash
+  ./gradlew :services:tenant-service:bootRun --args='--spring.profiles.active=local'
+  ```
+- **Subscription Service:**
+  ```bash
+  ./gradlew :services:subscription-service:bootRun --args='--spring.profiles.active=local'
+  ```
+- **Competition Service:**
+  ```bash
+  ./gradlew :services:competition-service:bootRun --args='--spring.profiles.active=local'
+  ```
+- **Ranking Service:**
+  ```bash
+  ./gradlew :services:ranking-service:bootRun --args='--spring.profiles.active=local'
+  ```
 
-```bash
-bin/run-service gateway
-```
+---
 
-Gateway sẽ chạy ở `8080` và route tới `8081` -> `8086` theo config hiện tại.
+## 5. Chạy Bằng IDE (IntelliJ IDEA)
 
-## 8. Chạy Cả Stack Bằng Một Script
+1. Mở project trong IntelliJ IDEA.
+2. Đảm bảo Gradle đã sync thành công.
+3. Tìm đến class `*Application` của service muốn chạy (ví dụ: `com.bk.arenax.identity.IdentityServiceApplication`).
+4. Tạo Run Configuration:
+   - **Main class:** `com.bk.arenax.identity.IdentityServiceApplication`
+   - **Active profiles:** `local`
+   - **Environment variables:** (nếu cần override DB/Redis)
+5. Nhấn **Run**. Spring Boot sẽ tự động kết nối với các container Docker đang chạy.
 
-Nếu bạn muốn start toàn bộ local stack ở background:
+---
 
-```bash
-bin/run-local-stack start
-```
+## 6. Kiểm Tra Sau Khi Khởi Chạy
 
-Check trạng thái:
+- **Eureka Dashboard:** [http://localhost:8761](http://localhost:8761) (Xem các service đăng ký).
+- **API Gateway Health:**
+  ```bash
+  curl http://localhost:8080/actuator/health
+  ```
+- **Identity Service Register Flow:**
+  ```bash
+  curl -X POST http://localhost:8080/api/v1/auth/register \
+    -H 'Content-Type: application/json' \
+    -d '{
+      "email":"user1@example.com",
+      "password":"secret123",
+      "displayName":"User One"
+    }'
+  ```
 
-```bash
-bin/run-local-stack status
-```
+---
 
-Stop tất cả process đã được script track:
+## 7. Troubleshooting Nhanh
 
-```bash
-bin/run-local-stack stop
-```
-
-Log sẽ được ghi vào:
-
-```text
-.local/run/
-```
-
-Lưu ý quan trọng:
-
-- script này không tạo PostgreSQL cho bạn
-- script này không tạo database giúp bạn
-- script này không hoàn thiện RabbitMQ runtime
-- script chỉ giúp chạy local theo config và port mặc định nhanh hơn
-
-## 9. Dùng Nút Start Của IDE Có Được Không?
-
-Có.
-
-Bạn không bắt buộc phải run bằng CLI.
-
-Điểm thay đổi sau khi restructure là:
-
-- bạn không run root project nữa
-- bạn run đúng `*Application` class của từng service
-- với service trong IDE, chỉ cần chọn đúng main class và set active profile `local`
-
-Ví dụ với IntelliJ hoặc IDE tương tự:
-
-### Gateway
-
-- Main class: `com.bk.arenax.gateway.ApiGatewayApplication`
-- Active profile: `local`
-- Chạy được ngay
-
-### Identity
-
-- Main class: `com.bk.arenax.identity.IdentityServiceApplication`
-- Active profile: `local`
-
-### Competition
-
-- Main class: `com.bk.arenax.competition.CompetitionServiceApplication`
-- Active profile: `local`
-
-Tương tự cho các persistence service khác.
-
-Nói ngắn gọn:
-
-- IDE Start vẫn dùng được
-- chỉ là bạn phải start đúng subproject app, không phải root
-- gateway bấm Start là lên ngay với profile `local`
-- persistence service bấm Start được sau khi set profile `local`
-
-Nếu muốn hướng dẫn click-by-click cho IntelliJ, Run Configuration, và Compound configuration, đọc file riêng:
-
-- `docs/development/intellij-setup.md`
-
-## 10. Bước 6: Check Từng App Sau Khi Lên
-
-Ví dụ check health gateway:
-
-```bash
-curl http://localhost:8080/actuator/health
-```
-
-Ví dụ flow register qua gateway:
-
-```bash
-curl -X POST http://localhost:8080/api/v1/auth/register \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "email":"user1@example.com",
-    "password":"secret123",
-    "displayName":"User One"
-  }'
-```
-
-Lưu ý:
-
-- register chỉ mới tạo `PROVISIONING` user
-- onboarding event hiện mới hoàn thiện ở source/service-layer pattern
-- chưa có RabbitMQ runtime wiring để full distributed onboarding chạy tự động ngoài test flow
-
-Nghĩa là local runtime hiện phù hợp nhất cho:
-
-- start gateway
-- start từng service riêng lẻ
-- smoke test HTTP slice độc lập
-
-chứ chưa phải full async platform end-to-end production-like.
-
-## 11. Cách Chạy Nhanh Nhất Nếu Bạn Chỉ Muốn Verify Repo Sống
-
-Nếu chưa muốn dựng đủ PostgreSQL cho 6 service, hãy làm theo mức tối thiểu này:
-
-1. chạy `./gradlew test`
-2. chạy `./gradlew :services:api-gateway:bootRun`
-3. đọc `docs/onboarding/02-core-flows.md`
-4. chọn một service rồi chạy riêng nó với profile `local`
-
-Đây là cách ít friction nhất để bắt đầu với trạng thái hiện tại.
-
-## 12. Những Gì Chưa Được Tự Động Hóa
-
-Hiện repo vẫn chưa có:
-
-- Docker Compose mới cho full stack
-- RabbitMQ runtime để tự đẩy event giữa services
-
-Script + local profile đã giúp local run nhẹ hơn, nhưng repo vẫn chưa thành one-click full platform hoàn chỉnh.
-
-## 13. Troubleshooting Nhanh
-
-### Lỗi: `Task 'bootRun' not found in root project`
-
-Bạn đang chạy sai chỗ.
-
-Đúng:
-
-```bash
-./gradlew :services:api-gateway:bootRun
-```
-
-Sai:
-
-```bash
-./gradlew bootRun
-```
-
-vì root không còn là Spring Boot app.
-
-### Lỗi: `Failed to configure a DataSource`
-
-Thường là bạn quên bật profile `local`, hoặc local PostgreSQL/database chưa tồn tại.
-
-### Lỗi: gateway lên nhưng route sang service khác bị connection refused
-
-Nguyên nhân thường là:
-
-- downstream service chưa chạy
-- service chạy sai port
-- gateway đang route tới `8081` -> `8086` nhưng service vẫn đang ở `8080`
-
-### Lỗi: register/login không chạy end-to-end như kỳ vọng microservices thật
-
-Hiện async runtime wiring chưa hoàn thiện. Repo mới ở phase source architecture + tested slices, chưa phải full distributed runtime.
+- **Lỗi `Task 'bootRun' not found in root project`:**
+  Root project không phải là Spring Boot app. Hãy chạy chỉ định đúng module, ví dụ: `./gradlew :services:api-gateway:bootRun`.
+- **Lỗi kết nối database:**
+  Đảm bảo `docker compose up -d` đang chạy và các database đã được khởi tạo qua init script.
+- **Lỗi Eureka Connection Refused:**
+  Đảm bảo `discovery-server` đã healthy (port `8761`) trước khi boot các service con.

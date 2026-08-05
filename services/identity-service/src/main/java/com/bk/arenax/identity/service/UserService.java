@@ -56,6 +56,7 @@ public class UserService {
   private final ObjectMapper objectMapper;
   private final AuthenticationManager authenticationManager;
   private final com.bk.arenax.identity.infrastructure.jwt.JwtService jwtService;
+  private final RbacService rbacService;
 
   @Transactional
   public User register(String email, String password, String fullName){
@@ -261,13 +262,15 @@ public class UserService {
                     now.plusSeconds(jwtService.getRefreshTokenTtlSeconds()),
                     accountId));
 
+    RbacService.RbacDetails rbac = rbacService.getUserRbac(user.getId());
+
     String accessToken = jwtService.issueAccessToken(
             user.getId(),
             refreshSession.getId(),
             user.getTokenVersion(),
             accountId,
-            List.of(),
-            List.of());
+            rbac.roles(),
+            rbac.permissions());
 
     return new LoginResult(
             new AuthTokenResponse(
@@ -282,8 +285,8 @@ public class UserService {
                             user.getAvatarUrl(),
                             user.getEmailVerifiedAt(),
                             accountId,
-                             List.of(),
-                             List.of())),
+                             rbac.roles(),
+                             rbac.permissions())),
              rawRefreshToken);
   }
 
@@ -310,6 +313,7 @@ public class UserService {
   }
 
   private UserProfileResponse toProfileResponse(User user, UUID accountId) {
+    RbacService.RbacDetails rbac = rbacService.getUserRbac(user.getId());
     return new UserProfileResponse(
             user.getId(),
             user.getEmail(),
@@ -318,8 +322,8 @@ public class UserService {
             user.getAvatarUrl(),
             user.getEmailVerifiedAt(),
             accountId,
-            List.of(),
-            List.of());
+            rbac.roles(),
+            rbac.permissions());
   }
 
   private String normalizeEmail(String email){

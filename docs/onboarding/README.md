@@ -1,23 +1,33 @@
 # ArenaX Onboarding Guide
 
-Tài liệu này là điểm vào dành cho người mới join project.
+Chào mừng bạn đến với dự án ArenaX Backend! Tài liệu này định hướng nhanh cho developer mới tham gia dự án.
 
-Đọc theo thứ tự sau:
+## 🚀 3 Bước Bắt Đầu Nhanh
 
-1. `docs/onboarding/01-system-tour.md`
-2. `docs/onboarding/02-core-flows.md`
-3. `docs/onboarding/03-domain-glossary.md`
-4. `docs/onboarding/04-data-and-integration-map.md`
-5. `docs/onboarding/05-current-status-and-gaps.md`
-6. `docs/onboarding/06-first-week-guide.md`
-7. `docs/onboarding/07-architecture-decisions.md`
+1. **Đọc tổng quan kiến trúc hệ thống:**
+   - `docs/onboarding/01-system-tour.md` (Tổng quan các service)
+   - `docs/onboarding/02-core-flows.md` (Luồng xử lý cốt lõi)
+2. **Khởi chạy môi trường local:**
+   - Xem hướng dẫn chi tiết tại `docs/development/running-the-stack.md`
+   - Hoặc chạy nhanh hạ tầng:
+     ```bash
+     docker compose up -d
+     ```
+3. **Tuân thủ quy chuẩn code:**
+   - `docs/architecture/conventions.md`
+   - `docs/architecture/service-boundaries.md`
 
-Nếu cần rule code và structure chi tiết khi bắt đầu implement, đọc thêm:
+## 📚 Mục Lục Tài Liệu
 
-- `docs/architecture/conventions.md`
-- `docs/architecture/service-template.md`
-- `docs/architecture/service-boundaries.md`
-- `docs/architecture/event-conventions.md`
-- `docs/services/*.md`
-- `docs/development/local-development.md`
-- `docs/development/running-the-stack.md`
+- **Onboarding:**
+  - `01-system-tour.md` - Sơ đồ và chức năng các microservices
+  - `02-core-flows.md` - Luồng nghiệp vụ chính
+  - `03-domain-glossary.md` - Thuật ngữ domain
+  - `04-data-and-integration-map.md` - Bản đồ dữ liệu và tích hợp
+- **Development:**
+  - `running-the-stack.md` - Hướng dẫn chạy local stack
+  - `intellij-setup.md` - Cấu hình IntelliJ IDEA
+  - `testing.md` - Quy chuẩn viết test
+- **Architecture:**
+  - `service-boundaries.md` - Ranh giới giữa các service
+  - `conventions.md` - Convention lập trình chung
