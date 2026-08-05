@@ -7,6 +7,7 @@ plugins {
 dependencies {
     "implementation"(platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES))
     "implementation"("org.springframework.boot:spring-boot-starter-actuator")
+    "developmentOnly"("org.springframework.boot:spring-boot-docker-compose")
     "testImplementation"("org.springframework.boot:spring-boot-starter-test")
     "testImplementation"("org.springframework.boot:spring-boot-starter-webmvc-test")
 }
