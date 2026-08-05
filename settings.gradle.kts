@@ -21,7 +21,6 @@ rootProject.name = "arenax"
 include(
     "services:api-gateway",
     "services:identity-service",
-    "services:access-service",
     "services:tenant-service",
     "services:subscription-service",
     "services:competition-service",
