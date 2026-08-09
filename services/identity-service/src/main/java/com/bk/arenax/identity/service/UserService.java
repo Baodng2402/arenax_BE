@@ -7,6 +7,8 @@ import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.PasswordResetToken;
 import com.bk.arenax.identity.domain.RefreshSession;
 import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.domain.UserIdentifier;
+import com.bk.arenax.identity.domain.UserIdentifierType;
 import com.bk.arenax.identity.domain.UserStatus;
 import com.bk.arenax.identity.messaging.EventEnvelope;
 import com.bk.arenax.identity.messaging.UserPasswordResetRequestedPayload;
@@ -16,6 +18,7 @@ import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
+import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +51,7 @@ public class UserService {
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   private final UserRepository userRepo;
+  private final UserIdentifierRepository userIdentifierRepository;
   private final EmailVerificationTokenRepository emailVerificationTokenRepository;
   private final OutboxEventRepository outboxEventRepository;
   private final RefreshSessionRepository refreshSessionRepository;
@@ -61,7 +65,7 @@ public class UserService {
   @Transactional
   public User register(String email, String password, String fullName){
     String normalizedEmail = normalizeEmail(email);
-    if(userRepo.existsByEmail(normalizedEmail)){
+    if(userIdentifierRepository.existsByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)){
       throw new IllegalArgumentException("Email already exists");
     }
 
@@ -71,11 +75,13 @@ public class UserService {
             fullName == null ? null : fullName.trim(),
             Instant.now());
     User savedUser = userRepo.save(user);
+    UserIdentifier primaryEmail = userIdentifierRepository.save(
+            UserIdentifier.primaryEmail(savedUser.getId(), normalizedEmail, null));
 
     Instant expiresAt = Instant.now().plus(EMAIL_VERIFICATION_TTL);
     String rawVerificationToken = generateOpaqueToken();
     emailVerificationTokenRepository.save(
-            EmailVerificationToken.issue(savedUser.getId(), hashToken(rawVerificationToken), expiresAt));
+            EmailVerificationToken.issue(savedUser.getId(), primaryEmail.getId(), hashToken(rawVerificationToken), expiresAt));
     outboxEventRepository.save(OutboxEvent.create(
             "identity.user.verification-requested.v1",
             1,
@@ -91,7 +97,7 @@ public class UserService {
                     "identity-service",
                     new UserVerificationRequestedPayload(
                             savedUser.getId(),
-                            savedUser.getEmail(),
+                            primaryEmail.getNormalizedValue(),
                             savedUser.getFullName(),
                             rawVerificationToken,
                             expiresAt)))));
@@ -109,33 +115,35 @@ public class UserService {
 
     User user = userRepo.findById(token.getUserId())
             .orElseThrow(() -> new IllegalStateException("User not found for verification token"));
+    UserIdentifier identifier = userIdentifierRepository.findById(token.getUserIdentifierId())
+            .orElseThrow(() -> new IllegalStateException("Identifier not found for verification token"));
 
     token.consume(now);
+    identifier.verify(now);
     user.verifyEmail(now);
 
     outboxEventRepository.save(OutboxEvent.create(
-            "identity.user.registered.v1",
-            1,
+            "identity.user.registered.v2",
+            2,
             user.getId(),
             "identity-service",
             now,
             writePayload(new EventEnvelope<>(
                     UUID.randomUUID(),
-                    "identity.user.registered.v1",
-                    1,
+                    "identity.user.registered.v2",
+                    2,
                     now,
                     user.getId(),
                     "identity-service",
                     new UserRegisteredPayload(
                             user.getId(),
-                            user.getEmail(),
                             user.getFullName())))));
   }
 
   @Transactional(noRollbackFor = {InvalidCredentialsException.class, AccountLockedException.class})
   public LoginResult login(String email, String password, UUID accountId) {
     String normalizedEmail = normalizeEmail(email);
-    User user = userRepo.findByEmail(normalizedEmail).orElse(null);
+    User user = findUserByEmail(normalizedEmail).orElse(null);
     Instant now = Instant.now();
 
     if (user != null && user.isLockedAt(now)) {
@@ -161,7 +169,7 @@ public class UserService {
       throw new AuthenticationServiceException("Authentication failed", exception);
     }
 
-    user = userRepo.findByEmail(normalizedEmail)
+    user = findUserByEmail(normalizedEmail)
             .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists"));
     user.recordSuccessfulLogin(now);
 
@@ -208,10 +216,11 @@ public class UserService {
 
   @Transactional
   public void requestPasswordReset(String email) {
-    userRepo.findByEmail(normalizeEmail(email)).ifPresent(user -> {
+    findUserByVerifiedEmail(normalizeEmail(email)).ifPresent(user -> {
       Instant now = Instant.now();
       Instant expiresAt = now.plus(PASSWORD_RESET_TTL);
       String rawResetToken = generateOpaqueToken();
+      String primaryEmail = requirePrimaryEmail(user.getId()).getNormalizedValue();
       passwordResetTokenRepository.save(
               PasswordResetToken.issue(user.getId(), hashToken(rawResetToken), expiresAt));
       outboxEventRepository.save(OutboxEvent.create(
@@ -229,7 +238,7 @@ public class UserService {
                       "identity-service",
                       new UserPasswordResetRequestedPayload(
                               user.getId(),
-                              user.getEmail(),
+                              primaryEmail,
                               user.getFullName(),
                               rawResetToken,
                               expiresAt)))));
@@ -279,7 +288,7 @@ public class UserService {
                     jwtService.getAccessTokenTtlSeconds(),
                      new UserProfileResponse(
                              user.getId(),
-                             user.getEmail(),
+                              requirePrimaryEmail(user.getId()).getNormalizedValue(),
                              user.getFullName(),
                              user.getStatus().name(),
                             user.getAvatarUrl(),
@@ -316,7 +325,7 @@ public class UserService {
     RbacService.RbacDetails rbac = rbacService.getUserRbac(user.getId());
     return new UserProfileResponse(
             user.getId(),
-            user.getEmail(),
+            requirePrimaryEmail(user.getId()).getNormalizedValue(),
             user.getFullName(),
             user.getStatus().name(),
             user.getAvatarUrl(),
@@ -328,6 +337,22 @@ public class UserService {
 
   private String normalizeEmail(String email){
     return email.trim().toLowerCase(Locale.ROOT);
+  }
+
+  private java.util.Optional<User> findUserByEmail(String normalizedEmail) {
+    return userIdentifierRepository.findByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)
+            .flatMap(identifier -> userRepo.findById(identifier.getUserId()));
+  }
+
+  private java.util.Optional<User> findUserByVerifiedEmail(String normalizedEmail) {
+    return userIdentifierRepository.findByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)
+            .filter(identifier -> identifier.getVerifiedAt() != null)
+            .flatMap(identifier -> userRepo.findById(identifier.getUserId()));
+  }
+
+  private UserIdentifier requirePrimaryEmail(UUID userId) {
+    return userIdentifierRepository.findByUserIdAndTypeAndPrimaryTrue(userId, UserIdentifierType.EMAIL)
+            .orElseThrow(() -> new IllegalStateException("Primary email not found for user"));
   }
 
   private String generateOpaqueToken() {

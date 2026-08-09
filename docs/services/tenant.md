@@ -8,7 +8,7 @@ Responsibilities:
 
 Current onboarding behavior:
 
-- consumes `identity.user.registered.v1`
+- consumes `identity.user.registered.v2`
 - creates one `PERSONAL` account per user
 - creates owner membership
 - emits `tenant.personal-account-created.v1`

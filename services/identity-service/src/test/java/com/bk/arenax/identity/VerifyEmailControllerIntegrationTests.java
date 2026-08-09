@@ -13,6 +13,7 @@ import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
+import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,12 +53,16 @@ class VerifyEmailControllerIntegrationTests {
     @Autowired
     private RefreshSessionRepository refreshSessionRepository;
 
+    @Autowired
+    private UserIdentifierRepository userIdentifierRepository;
+
     @BeforeEach
     void setUp() {
         outboxEventRepository.deleteAll();
         refreshSessionRepository.deleteAll();
         passwordResetTokenRepository.deleteAll();
         emailVerificationTokenRepository.deleteAll();
+        userIdentifierRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -87,14 +92,14 @@ class VerifyEmailControllerIntegrationTests {
         assertThat(outboxEvents).hasSize(2);
 
         OutboxEvent registeredEvent = outboxEvents.stream()
-                .filter(event -> event.getEventType().equals("identity.user.registered.v1"))
+                .filter(event -> event.getEventType().equals("identity.user.registered.v2"))
                 .findFirst()
                 .orElseThrow();
 
         JsonNode payload = objectMapper.readTree(registeredEvent.getPayload());
         assertThat(payload.path("payload").path("userId").asText()).isEqualTo(userId.toString());
-        assertThat(payload.path("payload").path("email").asText()).isEqualTo("player1@arenax.dev");
         assertThat(payload.path("payload").path("displayName").asText()).isEqualTo("Player One");
+        assertThat(payload.path("payload").has("email")).isFalse();
     }
 
     @Test

@@ -5,10 +5,10 @@ info:
   description: Versioned integration events exchanged between ArenaX microservices.
 channels:
   identity.user.registered:
-    address: identity.user.registered.v1
+    address: identity.user.registered.v2
     messages:
       userRegistered:
-        $ref: '#/components/messages/UserRegisteredV1'
+        $ref: '#/components/messages/UserRegisteredV2'
   identity.user.profile-updated:
     address: identity.user.profile-updated.v1
     messages:
@@ -84,15 +84,11 @@ components:
       type: object
       required:
         - userId
-        - email
         - displayName
       properties:
         userId:
           type: string
           format: uuid
-        email:
-          type: string
-          format: email
         displayName:
           type: string
     UserProfileUpdatedPayload:
@@ -252,7 +248,7 @@ components:
           type: string
           format: date-time
   messages:
-    UserRegisteredV1:
+    UserRegisteredV2:
       payload:
         allOf:
           - $ref: '#/components/schemas/EventEnvelope'

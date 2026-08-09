@@ -1,13 +1,12 @@
 {
   "eventId": "6b646c7b-b4ea-4433-a5a2-31318f5715a3",
-  "eventType": "identity.user.registered.v1",
-  "eventVersion": 1,
+  "eventType": "identity.user.registered.v2",
+  "eventVersion": 2,
   "occurredAt": "2026-07-13T10:00:00Z",
   "correlationId": "967f8d89-2ef9-4cef-9f72-ff17b6f5a540",
   "producer": "identity-service",
   "payload": {
     "userId": "48f39a61-330d-4838-9db8-fadb4bf8a4b5",
-    "email": "player1@arenax.dev",
     "displayName": "Player One"
   }
 }

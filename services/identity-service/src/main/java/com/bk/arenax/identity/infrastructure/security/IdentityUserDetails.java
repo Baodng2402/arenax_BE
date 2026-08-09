@@ -1,6 +1,7 @@
 package com.bk.arenax.identity.infrastructure.security;
 
 import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.domain.UserIdentifier;
 import com.bk.arenax.identity.domain.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -15,6 +16,11 @@ import java.util.List;
 public final class IdentityUserDetails implements UserDetails {
 
   private final User user;
+  private final UserIdentifier primaryEmail;
+
+  public IdentityUserDetails(User user) {
+    this(user, null);
+  }
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -28,7 +34,7 @@ public final class IdentityUserDetails implements UserDetails {
 
   @Override
   public String getUsername() {
-    return user.getEmail();
+    return primaryEmail != null ? primaryEmail.getNormalizedValue() : user.getEmail();
   }
 
   @Override

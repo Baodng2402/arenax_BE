@@ -2,13 +2,11 @@ package com.bk.arenax.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.bk.arenax.identity.domain.EmailVerificationToken;
 import com.bk.arenax.identity.domain.OutboxEvent;
-import com.bk.arenax.identity.domain.User;
-import com.bk.arenax.identity.domain.UserStatus;
+import com.bk.arenax.identity.domain.UserIdentifier;
+import com.bk.arenax.identity.domain.UserIdentifierType;
 import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
@@ -30,7 +28,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class RegistrationControllerIntegrationTests {
+class UserIdentifierIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
@@ -40,6 +38,9 @@ class RegistrationControllerIntegrationTests {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserIdentifierRepository userIdentifierRepository;
 
     @Autowired
     private EmailVerificationTokenRepository emailVerificationTokenRepository;
@@ -53,9 +54,6 @@ class RegistrationControllerIntegrationTests {
     @Autowired
     private RefreshSessionRepository refreshSessionRepository;
 
-    @Autowired
-    private UserIdentifierRepository userIdentifierRepository;
-
     @BeforeEach
     void setUp() {
         outboxEventRepository.deleteAll();
@@ -67,47 +65,61 @@ class RegistrationControllerIntegrationTests {
     }
 
     @Test
-    void registerCreatesPendingUserWithNormalizedEmail() throws Exception {
+    void registerCreatesPrimaryEmailIdentifier() throws Exception {
+        UUID userId = registerUser("  Player1@ArenaX.dev ");
+
+        List<UserIdentifier> identifiers = userIdentifierRepository.findAll();
+        assertThat(identifiers).hasSize(1);
+
+        UserIdentifier identifier = identifiers.getFirst();
+        assertThat(identifier.getUserId()).isEqualTo(userId);
+        assertThat(identifier.getType()).isEqualTo(UserIdentifierType.EMAIL);
+        assertThat(identifier.getNormalizedValue()).isEqualTo("player1@arenax.dev");
+        assertThat(identifier.isPrimary()).isTrue();
+        assertThat(identifier.getVerifiedAt()).isNull();
+    }
+
+    @Test
+    void verifyEmailMarksPrimaryIdentifierVerified() throws Exception {
+        registerUser("player1@arenax.dev");
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s"
+                                }
+                                """.formatted(extractVerificationToken())))
+                .andExpect(status().isNoContent());
+
+        UserIdentifier identifier = userIdentifierRepository.findAll().getFirst();
+        assertThat(identifier.getVerifiedAt()).isNotNull();
+    }
+
+    private UUID registerUser(String email) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "email": "  Player1@ArenaX.dev ",
+                                  "email": "%s",
                                   "password": "Sup3rSecret!",
                                   "fullName": "Player One"
                                 }
-                                """))
+                                """.formatted(email)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value("player1@arenax.dev"))
-                .andExpect(jsonPath("$.status").value("PENDING"))
                 .andReturn();
 
-        JsonNode body = objectMapper.readTree(result.getResponse().getContentAsString());
-        UUID userId = UUID.fromString(body.path("userId").asText());
+        return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("userId")
+                .asText());
+    }
 
-        User user = userRepository.findById(userId).orElseThrow();
-        assertThat(user.getEmail()).isEqualTo("player1@arenax.dev");
-        assertThat(user.getStatus()).isEqualTo(UserStatus.PENDING);
-        assertThat(user.getPasswordHash()).isNotEqualTo("Sup3rSecret!");
-        assertThat(user.getPasswordHash()).startsWith("$2");
-
-        List<EmailVerificationToken> verificationTokens = emailVerificationTokenRepository.findAll();
-        assertThat(verificationTokens).hasSize(1);
-        assertThat(verificationTokens.getFirst().getUserId()).isEqualTo(userId);
-        assertThat(verificationTokens.getFirst().getTokenHash()).isNotBlank();
-        assertThat(verificationTokens.getFirst().getExpiresAt()).isNotNull();
-
-        List<OutboxEvent> outboxEvents = outboxEventRepository.findAll();
-        assertThat(outboxEvents).hasSize(1);
-        assertThat(outboxEvents.getFirst().getEventType()).isEqualTo("identity.user.verification-requested.v1");
-        assertThat(outboxEvents.getFirst().getCorrelationId()).isEqualTo(userId);
-
-        JsonNode eventPayload = objectMapper.readTree(outboxEvents.getFirst().getPayload());
-        assertThat(eventPayload.path("payload").path("userId").asText()).isEqualTo(userId.toString());
-        assertThat(eventPayload.path("payload").path("email").asText()).isEqualTo("player1@arenax.dev");
-        assertThat(eventPayload.path("payload").path("displayName").asText()).isEqualTo("Player One");
-        assertThat(eventPayload.path("payload").path("verificationToken").asText()).isNotBlank();
-        assertThat(eventPayload.path("payload").path("verificationToken").asText())
-                .isNotEqualTo(verificationTokens.getFirst().getTokenHash());
+    private String extractVerificationToken() throws Exception {
+        OutboxEvent verificationEvent = outboxEventRepository.findAll().stream()
+                .filter(event -> event.getEventType().equals("identity.user.verification-requested.v1"))
+                .findFirst()
+                .orElseThrow();
+        JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
+        return payload.path("payload").path("verificationToken").asText();
     }
 }

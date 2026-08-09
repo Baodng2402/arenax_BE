@@ -18,4 +18,4 @@ Key local tables:
 
 Current emitted event:
 
-- `identity.user.registered.v1`
+- `identity.user.registered.v2`

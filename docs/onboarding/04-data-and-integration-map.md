@@ -7,6 +7,7 @@
 Own:
 
 - `users`
+- `user_identifiers`
 - `refresh_sessions`
 - `onboarding_progress`
 - `authorization_projections`
@@ -14,7 +15,7 @@ Own:
 
 Produce:
 
-- `identity.user.registered.v1`
+- `identity.user.registered.v2`
 
 Consume tại service layer:
 
@@ -36,7 +37,7 @@ Produce:
 
 Consume tại service layer:
 
-- `identity.user.registered.v1`
+- `identity.user.registered.v2`
 
 ### `access-service`
 
@@ -125,7 +126,7 @@ Gateway routes thêm một entrypoint chung, nhưng service ownership vẫn nằ
 ## Event Integration Map
 
 ```text
-identity.user.registered.v1
+identity.user.registered.v2
   -> tenant-service
 
 tenant.personal-account-created.v1

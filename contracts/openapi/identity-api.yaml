@@ -206,6 +206,7 @@ components:
         email:
           type: string
           format: email
+          description: Primary login email.
         password:
           type: string
           minLength: 8
@@ -224,6 +225,7 @@ components:
         email:
           type: string
           format: email
+          description: Primary email captured at registration time.
         status:
           type: string
           enum: [PENDING]
@@ -241,6 +243,7 @@ components:
         email:
           type: string
           format: email
+          description: Primary login email.
         password:
           type: string
           minLength: 1
@@ -271,6 +274,7 @@ components:
         email:
           type: string
           format: email
+          description: Verified primary email required for reset delivery.
     ResetPasswordRequest:
       type: object
       required: [token, newPassword]
@@ -292,6 +296,7 @@ components:
         email:
           type: string
           format: email
+          description: Current primary email for the user.
         fullName:
           type: string
         status:

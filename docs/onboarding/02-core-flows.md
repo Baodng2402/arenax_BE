@@ -18,7 +18,7 @@ Khi một user mới đăng ký:
 
 1. `identity-service` nhận register request.
 2. Identity tạo user với status `PROVISIONING`.
-3. Identity ghi outbox event `identity.user.registered.v1`.
+3. Identity ghi outbox event `identity.user.registered.v2`.
 4. `tenant-service` consume event này ở service layer.
 5. Tenant tạo personal account và owner membership.
 6. Tenant ghi `tenant.personal-account-created.v1`.

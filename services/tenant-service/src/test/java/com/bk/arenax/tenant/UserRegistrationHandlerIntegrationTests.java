@@ -47,7 +47,7 @@ class UserRegistrationHandlerIntegrationTests {
     void handleCreatesPersonalAccountAndOwnerMembership() {
         UUID userId = UUID.fromString("7c109ef8-15d4-4d8a-a66a-c1f4138fb5ec");
 
-        userRegistrationHandler.handle(userRegisteredEvent(userId, "player1@arenax.dev", "Player One"));
+        userRegistrationHandler.handle(userRegisteredEvent(userId, "Player One"));
 
         List<Account> accounts = accountRepository.findAll();
         List<Membership> memberships = membershipRepository.findAll();
@@ -72,7 +72,7 @@ class UserRegistrationHandlerIntegrationTests {
     @Test
     void handleIsIdempotentForDuplicateEventDelivery() {
         UUID userId = UUID.fromString("a0941ec3-14d2-43d8-8179-9f95ca5a5f91");
-        EventEnvelope<UserRegisteredPayload> event = userRegisteredEvent(userId, "player2@arenax.dev", "Player Two");
+        EventEnvelope<UserRegisteredPayload> event = userRegisteredEvent(userId, "Player Two");
 
         userRegistrationHandler.handle(event);
         userRegistrationHandler.handle(event);
@@ -82,14 +82,14 @@ class UserRegistrationHandlerIntegrationTests {
         assertThat(outboxEventRepository.findAll()).hasSize(1);
     }
 
-    private EventEnvelope<UserRegisteredPayload> userRegisteredEvent(UUID userId, String email, String displayName) {
+    private EventEnvelope<UserRegisteredPayload> userRegisteredEvent(UUID userId, String displayName) {
         return new EventEnvelope<>(
                 UUID.fromString("db100d23-8ec3-4487-8b3e-4c2efde1c7f0"),
-                "identity.user.registered.v1",
-                1,
+                "identity.user.registered.v2",
+                2,
                 Instant.parse("2026-07-13T10:00:00Z"),
                 UUID.fromString("4608f3d6-bf56-497b-8abf-0de1a468fdcf"),
                 "identity-service",
-                new UserRegisteredPayload(userId, email, displayName));
+                new UserRegisteredPayload(userId, displayName));
     }
 }
