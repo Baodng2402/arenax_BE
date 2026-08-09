@@ -86,6 +86,8 @@ class GatewayIntegrationTests {
     static void registerProperties(DynamicPropertyRegistry registry) {
         registry.add("eureka.client.enabled", () -> "false");
         registry.add("arenax.gateway.routes.identity-service", () -> "http://127.0.0.1:" + downstreamServer.getAddress().getPort());
+        registry.add("arenax.gateway.routes.tenant-service", () -> "http://127.0.0.1:" + downstreamServer.getAddress().getPort());
+        registry.add("arenax.gateway.routes.subscription-service", () -> "http://127.0.0.1:" + downstreamServer.getAddress().getPort());
         registry.add("arenax.security.jwt.issuer", () -> "arenax-identity");
         registry.add("arenax.security.jwt.audience", () -> "arenax-api");
         registry.add("arenax.security.jwt.jwk-set-uri", () -> "http://127.0.0.1:" + jwksServer.getAddress().getPort() + "/.well-known/jwks.json");
@@ -144,6 +146,42 @@ class GatewayIntegrationTests {
                 .andExpect(jsonPath("$.userId").value(userId))
                 .andExpect(jsonPath("$.roles").doesNotExist())
                 .andExpect(jsonPath("$.permissions").doesNotExist());
+    }
+
+    @Test
+    void tenantRouteProxiesTrustedAccountHeaders() throws Exception {
+        String userId = UUID.randomUUID().toString();
+        String sessionId = UUID.randomUUID().toString();
+        String token = issueToken(userId, sessionId, "account-tenant-1", List.of("OWNER"), List.of("ACCOUNT:READ"));
+
+        mockMvc.perform(get("/api/v1/accounts")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Request-Id", "req-accounts-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.path").value("/api/v1/accounts"))
+                .andExpect(jsonPath("$.requestId").value("req-accounts-1"))
+                .andExpect(jsonPath("$.userId").value(userId))
+                .andExpect(jsonPath("$.sessionId").value(sessionId))
+                .andExpect(jsonPath("$.accountId").value("account-tenant-1"))
+                .andExpect(jsonPath("$.roles").value("OWNER"))
+                .andExpect(jsonPath("$.permissions").value("ACCOUNT:READ"));
+    }
+
+    @Test
+    void subscriptionRouteProxiesTrustedAccountHeaders() throws Exception {
+        String userId = UUID.randomUUID().toString();
+        String sessionId = UUID.randomUUID().toString();
+        String token = issueToken(userId, sessionId, "account-subscription-1", List.of("OWNER"), List.of("SUBSCRIPTION:WRITE"));
+
+        mockMvc.perform(get("/api/v1/subscriptions/current")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.path").value("/api/v1/subscriptions/current"))
+                .andExpect(jsonPath("$.userId").value(userId))
+                .andExpect(jsonPath("$.sessionId").value(sessionId))
+                .andExpect(jsonPath("$.accountId").value("account-subscription-1"))
+                .andExpect(jsonPath("$.roles").value("OWNER"))
+                .andExpect(jsonPath("$.permissions").value("SUBSCRIPTION:WRITE"));
     }
 
     private static String issueToken(
