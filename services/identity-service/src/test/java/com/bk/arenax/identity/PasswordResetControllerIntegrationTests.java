@@ -126,6 +126,49 @@ class PasswordResetControllerIntegrationTests {
     }
 
     @Test
+    void requestPasswordResetAcceptsVerifiedSecondaryEmail() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        outboxEventRepository.deleteAll();
+
+        mockMvc.perform(post("/api/v1/users/me/emails")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "second@arenax.dev"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s"
+                                }
+                                """.formatted(extractToken("identity.user.verification-requested.v1", "verificationToken"))))
+                .andExpect(status().isNoContent());
+
+        outboxEventRepository.deleteAll();
+
+        mockMvc.perform(post("/api/v1/auth/request-password-reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "second@arenax.dev"
+                                }
+                                """))
+                .andExpect(status().isAccepted());
+
+        OutboxEvent resetEvent = outboxEventRepository.findAll().stream()
+                .filter(event -> event.getEventType().equals("identity.user.password-reset-requested.v1"))
+                .findFirst()
+                .orElseThrow();
+        JsonNode payload = objectMapper.readTree(resetEvent.getPayload()).path("payload");
+        assertThat(payload.path("email").asText()).isEqualTo("second@arenax.dev");
+    }
+
+    @Test
     void resetPasswordChangesPasswordRevokesSessionsAndConsumesToken() throws Exception {
         UUID userId = registerAndVerifyUser();
         Cookie refreshCookie = loginUser("player1@arenax.dev", "Sup3rSecret!");

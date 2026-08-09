@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.RefreshSession;
 import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.domain.UserIdentifier;
 import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
@@ -90,7 +91,7 @@ class LoginControllerIntegrationTests {
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.expiresIn").value(900))
                 .andExpect(jsonPath("$.user.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.user.email").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.user.primaryEmail").value("player1@arenax.dev"))
                 .andExpect(jsonPath("$.user.fullName").value("Player One"))
                 .andExpect(jsonPath("$.user.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.user.roles").isArray())
@@ -189,7 +190,7 @@ class LoginControllerIntegrationTests {
     }
 
     @Test
-    void loginAsUnverifiedUserReturnsPendingProfile() throws Exception {
+    void loginRejectsUnverifiedUser() throws Exception {
         registerUser();
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -200,11 +201,45 @@ class LoginControllerIntegrationTests {
                                   "password": "Sup3rSecret!"
                                 }
                                 """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void loginAcceptsVerifiedSecondaryEmail() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        outboxEventRepository.deleteAll();
+
+        mockMvc.perform(post("/api/v1/users/me/emails")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "second@arenax.dev"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s"
+                                }
+                                """.formatted(extractVerificationToken(outboxEventRepository.findAll()))))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "second@arenax.dev",
+                                  "password": "Sup3rSecret!"
+                                }
+                                """))
                 .andExpect(status().isOk())
-                .andExpect(cookie().exists("arenax_refresh_token"))
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.user.status").value("PENDING"))
-                .andExpect(jsonPath("$.user.emailVerifiedAt").value(org.hamcrest.Matchers.nullValue()));
+                .andExpect(jsonPath("$.user.userId").value(userId.toString()))
+                .andExpect(jsonPath("$.user.primaryEmail").value("player1@arenax.dev"));
     }
 
     @Test
@@ -285,7 +320,7 @@ class LoginControllerIntegrationTests {
     private String extractVerificationToken(List<OutboxEvent> outboxEvents) throws Exception {
         OutboxEvent verificationEvent = outboxEvents.stream()
                 .filter(event -> event.getEventType().equals("identity.user.verification-requested.v1"))
-                .findFirst()
+                .reduce((first, second) -> second)
                 .orElseThrow();
         JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
         return payload.path("payload").path("verificationToken").asText();

@@ -21,11 +21,12 @@ public class IdentityUserDetailsService implements UserDetailsService {
   private final UserRepository userRepo;
 
   @Override
-  @Transactional(readOnly = true)
+  @Transactional(readOnly = true, noRollbackFor = UsernameNotFoundException.class)
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
     String normalizedEmail = Objects.requireNonNull(username).trim().toLowerCase(Locale.ROOT);
     var identifier = userIdentifierRepository
             .findByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)
+            .filter(candidate -> candidate.getVerifiedAt() != null)
             .orElseThrow(() -> new UsernameNotFoundException("email not exist"));
     var user = userRepo.findById(identifier.getUserId())
             .orElseThrow(() -> new UsernameNotFoundException("email not exist"));

@@ -72,9 +72,30 @@ public class UserIdentifier {
         return identifier;
     }
 
+    public static UserIdentifier secondaryEmail(UUID userId, String normalizedEmail) {
+        UserIdentifier identifier = new UserIdentifier();
+        identifier.userId = Objects.requireNonNull(userId);
+        identifier.type = UserIdentifierType.EMAIL;
+        identifier.normalizedValue = Objects.requireNonNull(normalizedEmail);
+        identifier.primary = false;
+        return identifier;
+    }
+
     public void verify(Instant verifiedAt) {
         if (this.verifiedAt == null) {
             this.verifiedAt = Objects.requireNonNull(verifiedAt);
         }
+    }
+
+    public void makePrimary() {
+        this.primary = true;
+    }
+
+    public void makeSecondary() {
+        this.primary = false;
+    }
+
+    public boolean isVerified() {
+        return verifiedAt != null;
     }
 }
