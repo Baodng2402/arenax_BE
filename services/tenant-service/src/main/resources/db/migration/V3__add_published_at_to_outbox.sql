@@ -1,0 +1,1 @@
+alter table outbox_events add column published_at timestamp;
