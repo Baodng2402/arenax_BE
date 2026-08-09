@@ -1,0 +1,13 @@
+{
+  "eventId": "1d0ae8d2-20d4-46e6-8ee5-51ea273502d2",
+  "eventType": "subscription.changed.v1",
+  "eventVersion": 1,
+  "occurredAt": "2026-07-13T10:08:00Z",
+  "correlationId": "4ebe95a5-8f72-4dce-a143-1b3e0d716ec7",
+  "producer": "subscription-service",
+  "payload": {
+    "accountId": "4ebe95a5-8f72-4dce-a143-1b3e0d716ec7",
+    "plan": "PRO",
+    "status": "ACTIVE"
+  }
+}

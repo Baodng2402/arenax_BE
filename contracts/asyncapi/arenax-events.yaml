@@ -29,16 +29,16 @@ channels:
     messages:
       personalAccountCreated:
         $ref: '#/components/messages/PersonalAccountCreatedV1'
-  access.default-role-granted:
-    address: access.default-role-granted.v1
+  subscription.changed:
+    address: subscription.changed.v1
     messages:
-      defaultRoleGranted:
-        $ref: '#/components/messages/DefaultRoleGrantedV1'
-  access.authorization-changed:
-    address: access.authorization-changed.v1
+      subscriptionChanged:
+        $ref: '#/components/messages/SubscriptionChangedV1'
+  subscription.cancelled:
+    address: subscription.cancelled.v1
     messages:
-      authorizationChanged:
-        $ref: '#/components/messages/AuthorizationChangedV1'
+      subscriptionCancelled:
+        $ref: '#/components/messages/SubscriptionCancelledV1'
   subscription.activated:
     address: subscription.activated.v1
     messages:
@@ -163,44 +163,21 @@ components:
           format: uuid
         accountName:
           type: string
-    DefaultRoleGrantedPayload:
-      type: object
-      required:
-        - userId
-        - accountId
-        - roleCode
-      properties:
-        userId:
-          type: string
-          format: uuid
-        accountId:
-          type: string
-          format: uuid
-        roleCode:
-          type: string
-    AuthorizationChangedPayload:
-      type: object
-      required:
-        - userId
-        - accountId
-        - roles
-        - permissions
-      properties:
-        userId:
-          type: string
-          format: uuid
-        accountId:
-          type: string
-          format: uuid
-        roles:
-          type: array
-          items:
-            type: string
-        permissions:
-          type: array
-          items:
-            type: string
     SubscriptionActivatedPayload:
+      type: object
+      required:
+        - accountId
+        - plan
+        - status
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        plan:
+          type: string
+        status:
+          type: string
+    SubscriptionChangedPayload:
       type: object
       required:
         - accountId
@@ -288,22 +265,22 @@ components:
             properties:
               payload:
                 $ref: '#/components/schemas/PersonalAccountCreatedPayload'
-    DefaultRoleGrantedV1:
+    SubscriptionChangedV1:
       payload:
         allOf:
           - $ref: '#/components/schemas/EventEnvelope'
           - type: object
             properties:
               payload:
-                $ref: '#/components/schemas/DefaultRoleGrantedPayload'
-    AuthorizationChangedV1:
+                $ref: '#/components/schemas/SubscriptionChangedPayload'
+    SubscriptionCancelledV1:
       payload:
         allOf:
           - $ref: '#/components/schemas/EventEnvelope'
           - type: object
             properties:
               payload:
-                $ref: '#/components/schemas/AuthorizationChangedPayload'
+                $ref: '#/components/schemas/SubscriptionChangedPayload'
     SubscriptionActivatedV1:
       payload:
         allOf:

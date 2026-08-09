@@ -1,0 +1,154 @@
+openapi: 3.1.0
+info:
+  title: ArenaX Tenant API
+  version: 1.0.0
+  description: Account and membership API exposed through API Gateway and implemented by tenant-service.
+servers:
+  - url: https://api.arenax.example
+tags:
+  - name: Accounts
+paths:
+  /api/v1/accounts:
+    get:
+      tags: [Accounts]
+      summary: List accounts visible to the authenticated user
+      operationId: listAccounts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Membership-backed account summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountSummaryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/accounts/workspaces:
+    post:
+      tags: [Accounts]
+      summary: Create a workspace account and owner membership
+      operationId: createWorkspace
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkspaceRequest'
+      responses:
+        '201':
+          description: Workspace created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSummaryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/accounts/{accountId}/memberships:
+    get:
+      tags: [Accounts]
+      summary: List memberships for an account the caller belongs to
+      operationId: listAccountMemberships
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: accountId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Memberships ordered by creation time.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MembershipResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Validation error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Caller does not belong to the requested account.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    CreateWorkspaceRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+    AccountSummaryResponse:
+      type: object
+      required: [accountId, name, type, status, role, current]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [PERSONAL, TEAM]
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, ARCHIVED]
+        role:
+          type: string
+          enum: [OWNER, MEMBER]
+        current:
+          type: boolean
+    MembershipResponse:
+      type: object
+      required: [membershipId, userId, role]
+      properties:
+        membershipId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [OWNER, MEMBER]
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string

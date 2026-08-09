@@ -167,6 +167,151 @@ paths:
                 $ref: '#/components/schemas/UserProfileResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+    patch:
+      tags: [User Profile]
+      summary: Update authenticated user profile basics
+      operationId: updateCurrentUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Updated current profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/users/me/username:
+    put:
+      tags: [User Profile]
+      summary: Set or replace the public username handle
+      operationId: updateCurrentUsername
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUsernameRequest'
+      responses:
+        '200':
+          description: Username updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsernameResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    delete:
+      tags: [User Profile]
+      summary: Clear the public username handle
+      operationId: clearCurrentUsername
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Username cleared.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/users/me/emails:
+    get:
+      tags: [User Profile]
+      summary: List all email identifiers for the authenticated user
+      operationId: listCurrentUserEmails
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Ordered email identifiers, primary first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserEmailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [User Profile]
+      summary: Add a secondary email identifier and trigger verification
+      operationId: addCurrentUserEmail
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddEmailRequest'
+      responses:
+        '201':
+          description: Secondary email created in unverified state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserEmailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/users/me/emails/{emailId}/primary:
+    patch:
+      tags: [User Profile]
+      summary: Promote a verified email to primary
+      operationId: setCurrentUserPrimaryEmail
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: emailId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated profile with the new primary email.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/users/me/emails/{emailId}:
+    delete:
+      tags: [User Profile]
+      summary: Remove a non-primary email identifier
+      operationId: deleteCurrentUserEmail
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: emailId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Email identifier removed.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /.well-known/jwks.json:
     get:
       tags: [Authentication]
@@ -206,7 +351,7 @@ components:
         email:
           type: string
           format: email
-          description: Primary login email.
+          description: Primary email identifier created at registration time.
         password:
           type: string
           minLength: 8
@@ -243,7 +388,7 @@ components:
         email:
           type: string
           format: email
-          description: Primary login email.
+          description: Verified email identifier used for login.
         password:
           type: string
           minLength: 1
@@ -274,7 +419,40 @@ components:
         email:
           type: string
           format: email
-          description: Verified primary email required for reset delivery.
+          description: Any verified email identifier owned by the user.
+    UpdateProfileRequest:
+      type: object
+      required: [fullName]
+      properties:
+        fullName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+    UpdateUsernameRequest:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 40
+    UsernameResponse:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+    AddEmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
     ResetPasswordRequest:
       type: object
       required: [token, newPassword]
@@ -288,15 +466,22 @@ components:
           maxLength: 128
     UserProfileResponse:
       type: object
-      required: [userId, email, fullName, status]
+      required: [userId, primaryEmail, emails, fullName, status]
       properties:
         userId:
           type: string
           format: uuid
-        email:
+        username:
+          type: string
+          nullable: true
+        primaryEmail:
           type: string
           format: email
           description: Current primary email for the user.
+        emails:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserEmailResponse'
         fullName:
           type: string
         status:
@@ -322,6 +507,24 @@ components:
           type: array
           items:
             type: string
+    UserEmailResponse:
+      type: object
+      required: [id, email, primary, verified]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        primary:
+          type: boolean
+        verified:
+          type: boolean
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
     JwksResponse:
       type: object
       required: [keys]
