@@ -8,55 +8,54 @@
 
 Khi một user mới đăng ký:
 
-- user được tạo trong Identity
+- user được tạo trong Identity với status `PENDING`
+- user có primary email identifier
+- user verify email rồi mới được login
 - user có personal account trong Tenant
-- account có FREE subscription
-- user được gán role mặc định `USER` trong Access
-- chỉ sau khi đủ điều kiện thì Identity mới activate user để login thật sự
+- account có FREE subscription trong Subscription
 
 ### Trình tự hiện tại
 
-1. `identity-service` nhận register request.
-2. Identity tạo user với status `PROVISIONING`.
-3. Identity ghi outbox event `identity.user.registered.v2`.
-4. `tenant-service` consume event này ở service layer.
-5. Tenant tạo personal account và owner membership.
-6. Tenant ghi `tenant.personal-account-created.v1`.
-7. `access-service` xử lý personal-account-created.
-8. Access tạo permission mặc định, role `USER`, role assignment theo account.
-9. Access ghi `access.default-role-granted.v1` và `access.authorization-changed.v1`.
-10. `subscription-service` xử lý personal-account-created.
-11. Subscription tạo FREE subscription.
-12. Subscription ghi `subscription.activated.v1`.
-13. `identity-service` nhận tín hiệu authorization và subscription completion.
-14. Identity update onboarding progress, set `activeAccountId`, chuyển user sang `ACTIVE`.
+1. `identity-service` nhận register request, tạo user với status `PENDING`.
+2. Identity tạo primary `EMAIL` identifier và verification token.
+3. Identity ghi outbox event `identity.user.verification-requested.v1` (email chỉ nằm ở event delivery boundary này).
+4. User gọi verify-email bằng token.
+5. Identity verify identifier, chuyển user thành `ACTIVE`, ghi `identity.user.registered.v2` (chỉ chứa `userId` và `displayName`, không có email).
+6. `tenant-service` xử lý event này (hiện tại handler được gọi trực tiếp ở service layer trong test).
+7. Tenant tạo personal account và owner membership.
+8. Tenant ghi `tenant.personal-account-created.v1`.
+9. `subscription-service` xử lý personal-account-created.
+10. Subscription tạo FREE subscription.
+11. Subscription ghi `subscription.activated.v1`.
+12. User đã `ACTIVE` có thể login.
 
 ### Điều quan trọng cần nhớ
 
-- User vừa register chưa login được ngay nếu onboarding chưa xong.
-- Identity không cần gọi đồng bộ sang Access hoặc Subscription để login.
-- Identity dùng authorization projection local để đưa `roles` và `permissions` vào JWT.
+- User vừa register (`PENDING`, chưa verify email) bị từ chối login với `401`.
+- `access-service` không tồn tại; RBAC (roles, permissions, role assignments) nằm trong `identity-service` qua migration `V6__add_rbac_core.sql`. Không có handler nào tự gán role mặc định khi onboarding hiện tại.
+- Toàn bộ chuỗi event trên đã được nối runtime: mỗi service producer có outbox relay (`@Scheduled` poll các event chưa `published_at`, publish lên topic exchange `arenax.events` với routing key = event type) và mỗi consumer có `@RabbitListener` trên queue riêng (tenant/subscription/ranking). RabbitMQ nằm trong `compose.yaml`; test disabling qua `arenax.messaging.relay.enabled=false` và `spring.rabbitmq.listener.simple.auto-startup=false`.
 
 ## Flow 2: Login Và Token Issuance
 
 ### Mục tiêu business
 
-Cho phép user `ACTIVE` đăng nhập và nhận JWT có đủ claim cần thiết cho downstream services.
+Cho phép user `ACTIVE` có email identifier đã verified đăng nhập và nhận JWT có đủ claim cần thiết cho downstream services.
 
 ### Trình tự hiện tại
 
 1. User gọi `POST /api/v1/auth/login` qua gateway hoặc trực tiếp vào Identity.
-2. `identity-service` verify email và BCrypt password.
-3. Nếu user đang `PROVISIONING`, login bị từ chối.
-4. Nếu user `ACTIVE`, Identity đọc authorization projection local.
-5. Identity issue access token bằng RSA key cục bộ.
-6. JWT hiện chứa `account_id`, `roles`, `permissions` cùng các claim tiêu chuẩn.
+2. `identity-service` resolve email identifier (phải verified), verify BCrypt password.
+3. Nếu identifier chưa verified, login bị từ chối `401`.
+4. Identity kiểm tra lock, suspended, deactivated state.
+5. Identity phát access token + refresh session (có rotation và reuse detection).
+6. JWT chứa `account_id`, `roles`, `permissions` cùng các claim tiêu chuẩn (`sub` = userId).
 
 ### Điều quan trọng cần nhớ
 
 - Chỉ Identity được issue JWT.
-- Các service khác dự kiến sẽ validate token locally.
-- Refresh-token flow chưa hoàn thiện; hiện response login vẫn có placeholder refresh token rỗng.
+- Email không phải identity root; `sub` luôn là `userId`.
+- Refresh-token flow đã hoàn thiện: refresh session có rotate, phát hiện reuse, token được hash khi lưu.
+- User có thể login bằng bất kỳ email identifier nào đã verified.
 
 ## Flow 3: Match Result To Ranking
 
@@ -71,7 +70,7 @@ Khi một trận rank hoàn thành, ranking phải cập nhật ELO cho winner v
 3. Participant join match.
 4. Match được complete bằng score của hai team.
 5. Competition ghi `competition.match-completed.v1` vào outbox.
-6. `ranking-service` consume event này ở service layer.
+6. `ranking-service` xử lý event này ở service layer.
 7. Ranking tính ELO mới với initial rating `1000` và `K = 32`.
 8. Ranking update projection hiện tại và ghi ranking history.
 9. Query `GET /api/v1/rankings/users/{userId}` trả ranking hiện tại.
@@ -91,17 +90,14 @@ Cho phép client có một entrypoint HTTP chung.
 ### Trình tự hiện tại
 
 - Gateway route path theo responsibility:
-  - `/api/v1/auth/**` -> Identity
-  - `/api/v1/users/**` -> Identity
-  - `/api/v1/access/**` -> Access
-  - `/api/v1/accounts/**` -> Tenant
-  - `/api/v1/subscriptions/**` -> Subscription
-  - `/api/v1/sports/**` -> Competition
-  - `/api/v1/matches/**` -> Competition
-  - `/api/v1/rankings/**` -> Ranking
-- Gateway thêm hoặc propagate `X-Request-Id`.
+  - `/api/v1/auth/**` -> Identity (public trừ logout-all)
+  - `/api/v1/users/**` -> Identity (protected)
+  - `/api/v1/accounts/**` -> Tenant (protected)
+  - `/api/v1/subscriptions/**` -> Subscription (protected)
+- Gateway thay JWT bằng trusted headers (`X-Arenax-User-Id`, `X-Arenax-Session-Id`, `X-Arenax-Account-Id`, `X-Arenax-Roles`, `X-Arenax-Permissions`) trước khi forward, và strip token cũ.
+- Các route cho competition/ranking hiện chưa được bật qua gateway.
 
 ### Điều quan trọng cần nhớ
 
-- Gateway hiện dùng static URI config, chưa dùng Eureka.
-- Đây là routing layer cơ bản, chưa phải API gateway đầy đủ với auth/rate limit/circuit breaker hoàn chỉnh.
+- Gateway dùng `lb://` URI service discovery qua Eureka (`discovery-server` có trong `compose.yaml`).
+- Đây là routing layer cơ bản, chưa phải API gateway đầy đủ với rate limit/circuit breaker hoàn chỉnh.

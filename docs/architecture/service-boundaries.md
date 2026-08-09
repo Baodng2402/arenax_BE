@@ -2,8 +2,7 @@
 
 ## Services
 
-- `identity-service`: credentials, profile basics, refresh sessions, JWT issuance.
-- `access-service`: roles, permissions, account-scoped assignments.
+- `identity-service`: credentials, login identifiers (verified email), profile basics, refresh sessions, JWT issuance, RBAC (roles, permissions, account-scoped assignments).
 - `tenant-service`: accounts, ownership, memberships.
 - `subscription-service`: plan lifecycle.
 - `competition-service`: sports, matches, teams, participants.

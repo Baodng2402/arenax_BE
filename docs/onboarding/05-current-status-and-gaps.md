@@ -8,22 +8,25 @@
 - Các flow chính đã có integration tests.
 - AsyncAPI contract đã có.
 - Gateway routing cơ bản đã có.
-- Identity đã issue JWT bằng RSA.
+- Identity đã issue JWT bằng RSA, kèm claims `roles`/`permissions` từ RBAC local (migration V6: `permissions`, `roles`, `role_permissions`, `role_assignments`).
 - Onboarding flow và ranking flow đã có bản source-level chạy trong test.
+- Tenant và Subscription đã có public REST slices (`/api/v1/accounts/**`, `/api/v1/subscriptions/**`) qua gateway với trusted headers.
+- OpenAPI docs cho identity/tenant/subscription và AsyncAPI contracts đã đồng bộ với code.
 
 ## Những Gì Chưa Có
 
 ### Messaging Runtime
 
-Chưa có RabbitMQ wiring thật sự cho:
+Đã có:
 
-- publisher adapter
-- listener adapter
-- broker topology
+- outbox relay (`@Scheduled`, topic exchange `arenax.events`, đánh dấu `published_at` sau publish)
+- listener adapter (`@RabbitListener` + queue binding) cho tenant, subscription, ranking
+- broker topology: RabbitMQ trong `compose.yaml`
+
+Còn thiếu:
+
 - retry / dead-letter handling
-- handled-message inbox persistence ở adapter layer
-
-Hiện tại event handling mới dừng ở service-layer flow và outbox persistence.
+- handled-message inbox persistence ở adapter layer (hiện consumer dựa vào idempotency trong handler)
 
 ### Auth Runtime Hoàn Chỉnh
 
@@ -31,16 +34,17 @@ Hiện tại event handling mới dừng ở service-layer flow và outbox persi
 
 - refresh token rotation + reuse detection (reuse → revoke toàn bộ session + 410)
 - refresh token lưu dạng SHA-256 hash, session bảng `refresh_sessions` (kèm `account_id`)
-- chặn login cho user SUSPENDED/DEACTIVATED (403); PENDING vẫn login được để app hiện thông báo verify
+- chặn login cho user SUSPENDED/DEACTIVATED (403); login bắt buộc dùng email identifier đã verify (PENDING/user chưa verify → 401)
+- multi-email: thêm/verify/chuyển primary/xóa email qua `/api/v1/users/me/emails`; primary email sync vào legacy `users.email`
+- username optional unique handle qua `PUT/DELETE /api/v1/users/me/username`
 - endpoint `GET/PATCH /api/v1/users/me` — trust header `X-Arenax-*` từ gateway qua `TrustedGatewayAuthenticationFilter`
 - cookie `arenax_refresh_token` secure flag config-driven (`arenax.security.cookie.secure`, mặc định false local)
 - `account_id` được giữ xuyên qua refresh (migration V5)
 
 Còn thiếu:
 
-- roles/permissions trong JWT (đang hardcode rỗng — cần access-service để cấp)
-- validate `accountId` thuộc về user thật (cần tenant membership)
-- gateway security policy cho mọi route còn lại (tenant/access/subscription/competition/ranking)
+- identity chưa validate `accountId` thuộc về user thật qua tenant membership
+- gateway security policy cho routes competition/ranking (chưa được bật; tenant/subscription đã có)
 - service-to-service auth
 
 ### Infrastructure
@@ -59,7 +63,7 @@ Chưa có:
 
 Chưa có hoặc chưa hoàn thiện đầy đủ:
 
-- OpenAPI docs hoàn chỉnh
+- OpenAPI docs cho competition/ranking slices
 - uniform production-grade error model cho toàn repo
 - full authorization checks cho mọi business endpoint
 

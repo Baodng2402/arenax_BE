@@ -78,7 +78,7 @@ Outbox đã được thêm trước vì nó là phần nghiệp vụ và dữ li
 - side effect nào phải cùng transaction với business state
 - idempotency rule nào cần test
 
-RabbitMQ adapter thật có thể thêm ở phase sau mà không phải thiết kế lại business flow từ đầu.
+Quyết định này đã được hiện thực: outbox relay + listener adapter (RabbitMQ) được thêm mà không phải thiết kế lại business flow từ đầu.
 
 ## 6. Vì Sao Identity Giữ Authorization Projection Local
 

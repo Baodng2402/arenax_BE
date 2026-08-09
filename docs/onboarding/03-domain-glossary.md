@@ -4,53 +4,57 @@
 
 Identity của người dùng trong hệ thống.
 
-Trong trạng thái hiện tại, user được tạo ở `identity-service` và có thể ở các trạng thái như `PROVISIONING` hoặc `ACTIVE`.
+User được tạo ở `identity-service` và có các trạng thái như `PENDING` (mới register, chưa verify email), `ACTIVE`, `SUSPENDED`, `DEACTIVATED`.
+
+Identity root của user là `users.id` (UUID); mọi service khác reference user bằng `userId`, không dùng email.
 
 ## Account
 
-Đơn vị sở hữu tài nguyên theo tenant boundary.
+Đơn vị sở hữu tài nguyên theo tenant boundary, thuộc `tenant-service`.
 
-Hiện tại onboarding mặc định tạo một `PERSONAL` account cho user mới.
+Có `PERSONAL` (tạo mặc định khi onboarding) và `TEAM` (workspace, tạo qua `POST /api/v1/accounts/workspaces`).
 
 ## Membership
 
-Liên kết giữa user và account trong `tenant-service`.
+Liên kết giữa user và account trong `tenant-service`, mang role trong account (`OWNER`, `MEMBER`).
 
-Trong onboarding hiện tại, user mới nhận membership `OWNER` cho personal account của chính họ.
+User thuộc nhiều account qua nhiều memberships (ví dụ personal account + vài workspace).
 
 ## Role
 
-Nhóm quyền trong `access-service`, ví dụ role mặc định `USER`.
+Nhóm quyền trong `identity-service` (RBAC đã merge vào Identity; `access-service` không tồn tại).
 
-Role không phải global authorization object dùng chung toàn repo; nó thuộc boundary của Access.
+Role không phải global authorization object dùng chung toàn repo; nó thuộc boundary của Identity.
 
 ## Permission
 
-Quyền chi tiết trong `access-service`, ví dụ `MATCH:CREATE`, `MATCH:JOIN`, `RANKING:READ`.
+Quyền chi tiết trong `identity-service`, ví dụ `MATCH:CREATE`, `MATCH:JOIN`, `RANKING:READ`.
 
 ## Role Assignment
 
-Gán một role cho một `userId` trong một `accountId` cụ thể.
+Gán một role cho một `userId` trong một `accountId` cụ thể (bảng `role_assignments`, unique trên `(user_id, account_id, role_code)`).
 
-Đây là chỗ rất quan trọng: authorization đang được thiết kế theo tenant/account scope, không phải role toàn cục không ngữ cảnh.
+Authorization được thiết kế theo tenant/account scope, không phải role toàn cục không ngữ cảnh.
 
-## Authorization Projection
+## Authorization (JWT Claims)
 
-Bản sao local trong `identity-service` chứa roles và permissions đã được materialize để đưa vào JWT khi login.
+`roles` và `permissions` trong JWT được đọc từ chính database của `identity-service` khi login (qua RbacService), không cần gọi service nào khác.
 
-Projection này giúp downstream service validate token locally mà không phải gọi ngược sang Access cho mỗi request.
+## User Identifier
 
-## Onboarding Progress
+Cách user đăng nhập, thuộc `identity-service` (bảng `user_identifiers`).
 
-State nội bộ của `identity-service` để biết một user mới đã nhận đủ tín hiệu từ các service khác hay chưa.
+Hiện hỗ trợ type `EMAIL`: một user có thể có nhiều email, mỗi email verified/primary riêng; email dùng để login hoặc reset password phải được verify. Chỉ có một primary email tại một thời điểm; đổi primary sẽ sync `users.email` legacy.
 
-Identity chỉ activate user khi progress cho thấy authorization và subscription đã sẵn sàng.
+## Username
+
+Handle công khai tùy chọn của user (`users.username`, unique, nullable). Không phải identity root và không dùng để login.
 
 ## Subscription
 
 State gói dịch vụ theo account trong `subscription-service`.
 
-Hiện tại mới có flow provision mặc định `FREE`.
+Plan hiện có `FREE`, `PRO`, `TEAM`; status `ACTIVE`, `CANCELLED`. Entitlements được suy ra từ plan khi trả response.
 
 ## Sport
 
@@ -76,10 +80,8 @@ Projection này được build từ event `competition.match-completed.v1`.
 
 Row local trong database của producer service, dùng để lưu event đã phát sinh cùng transaction với business state.
 
-Nó là nền cho message publishing đáng tin cậy, dù broker runtime chưa wiring xong.
+Nó là nền cho message publishing đáng tin cậy. Outbox hiện có cột `published_at`; relay đánh dấu sau khi publish thành công lên topic exchange `arenax.events`.
 
 ## Correlation ID
 
-ID dùng để nối nhiều event trong cùng một business workflow.
-
-Ví dụ onboarding flow dùng correlation ID để Identity biết các tín hiệu completion thuộc về cùng một user registration.
+ID dùng để nối nhiều event trong cùng một business workflow (producer hay dùng `correlationId` = chính khóa business như userId/accountId/matchId).

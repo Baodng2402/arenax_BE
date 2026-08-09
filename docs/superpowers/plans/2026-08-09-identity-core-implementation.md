@@ -77,7 +77,7 @@
 - Modify: `services/tenant-service/src/main/java/com/bk/arenax/tenant/messaging/UserRegisteredPayload.java`
 - Modify: `services/tenant-service/src/main/java/com/bk/arenax/tenant/service/UserRegistrationHandler.java`
 - Modify: `contracts/asyncapi/arenax-events.yaml`
-- Modify: `contracts/asyncapi/examples/user-registered-v1.json`
+- Modify: `contracts/asyncapi/examples/user-registered-v2.json`
 
 **Interfaces:**
 - Produces: `identity.user.registered.v2` with payload `{ userId, displayName }`.

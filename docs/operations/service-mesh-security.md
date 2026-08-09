@@ -6,7 +6,7 @@ Doc này mô tả baseline production cho mô hình `Gateway-only public access`
 
 - Chỉ `api-gateway` được publish ra ngoài cluster/VPC.
 - Public HTTPS có thể terminate ở Kubernetes Ingress, cloud load balancer, hoặc edge proxy tương đương.
-- `identity-service`, `access-service`, `tenant-service`, `subscription-service`, `competition-service`, và `ranking-service` không được có public ingress riêng.
+- `identity-service`, `tenant-service`, `subscription-service`, `competition-service`, và `ranking-service` không được có public ingress riêng.
 
 ## Kubernetes Network Shape
 
@@ -33,7 +33,7 @@ Doc này mô tả baseline production cho mô hình `Gateway-only public access`
 
 ## Local Development Rule
 
-- `compose.yaml` hiện chỉ expose PostgreSQL, chưa publish service runtime nào.
+- `compose.yaml` hiện chỉ expose PostgreSQL, Redis và `discovery-server`, chưa publish service runtime nào.
 - Khi thêm local app containers sau này, chỉ expose `api-gateway` mặc định.
 - Business service port chỉ mở tạm thời khi debug cục bộ và không được commit thành default shared workflow.
 
