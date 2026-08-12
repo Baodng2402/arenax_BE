@@ -1,0 +1,13 @@
+{
+  "eventId": "7ec87596-3b9d-40c0-bd90-19f0b175fe75",
+  "eventType": "subscription.cancelled.v1",
+  "eventVersion": 1,
+  "occurredAt": "2026-07-13T10:12:00Z",
+  "correlationId": "4ebe95a5-8f72-4dce-a143-1b3e0d716ec7",
+  "producer": "subscription-service",
+  "payload": {
+    "accountId": "4ebe95a5-8f72-4dce-a143-1b3e0d716ec7",
+    "plan": "PRO",
+    "status": "CANCELLED"
+  }
+}

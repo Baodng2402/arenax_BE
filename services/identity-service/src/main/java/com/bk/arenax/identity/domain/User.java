@@ -39,6 +39,9 @@ public class User {
   @Column(name = "email_verified_at")
   private Instant emailVerifiedAt;
 
+  @Column(length = 40)
+  private String username;
+
   @Column(name="created_at",nullable = false,updatable = false)
   private Instant createdAt;
 
@@ -127,6 +130,19 @@ public class User {
     if (avatarUrl != null && !avatarUrl.isBlank()) {
       this.avatarUrl = avatarUrl.trim();
     }
+  }
+
+  public void setPrimaryEmail(String email, Instant verifiedAt) {
+    this.email = Objects.requireNonNull(email).trim();
+    this.emailVerifiedAt = verifiedAt;
+  }
+
+  public void setUsername(String username) {
+    this.username = Objects.requireNonNull(username).trim();
+  }
+
+  public void clearUsername() {
+    this.username = null;
   }
 
   public void suspend(){

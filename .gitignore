@@ -41,3 +41,6 @@ secrets/
 .local/
 .serena/
 **/bin/
+
+### Gradle build-logic cache ###
+.kotlin/

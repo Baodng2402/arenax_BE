@@ -45,8 +45,7 @@ Mỗi service không được sở hữu hoặc ghi trực tiếp vào bảng c�
 
 ### 5. Service Boundaries
 
-- `identity-service`: credentials, onboarding progress, authorization projection, token issuance.
-- `access-service`: roles, permissions, tenant-scoped role assignments.
+- `identity-service`: credentials, login identifiers (verified email), token issuance, RBAC (roles, permissions, account-scoped role assignments).
 - `tenant-service`: accounts và memberships.
 - `subscription-service`: subscription state per account.
 - `competition-service`: sports, matches, participants, results.

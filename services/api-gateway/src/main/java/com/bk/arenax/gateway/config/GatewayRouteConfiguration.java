@@ -26,6 +26,16 @@ public class GatewayRouteConfiguration {
                         .route(path("/api/v1/users/**"), http())
                         .before(uri(routesProperties.identityService()))
                         .before(gatewayHeaderFilter.protectedRouteHeaders())
+                        .build())
+                .and(route("tenant-accounts-route")
+                        .route(path("/api/v1/accounts/**"), http())
+                        .before(uri(routesProperties.tenantService()))
+                        .before(gatewayHeaderFilter.protectedRouteHeaders())
+                        .build())
+                .and(route("subscription-route")
+                        .route(path("/api/v1/subscriptions/**"), http())
+                        .before(uri(routesProperties.subscriptionService()))
+                        .before(gatewayHeaderFilter.protectedRouteHeaders())
                         .build());
     }
 }

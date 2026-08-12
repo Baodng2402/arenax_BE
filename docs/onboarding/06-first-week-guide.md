@@ -92,7 +92,7 @@ Nếu bạn đã onboard xong, bạn nên trả lời được:
 - vì sao Identity giữ authorization projection local
 - vì sao Ranking không đọc DB của Competition
 - vì sao event payload Java class không được share giữa services
-- vì sao outbox là bắt buộc dù RabbitMQ runtime chưa wiring xong
+- vì sao outbox bắt buộc để có outbox relay + listener adapter chạy trên RabbitMQ (`compose.yaml`)
 
 ## Khi Bị Kẹt
 

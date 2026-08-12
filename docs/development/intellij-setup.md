@@ -23,7 +23,6 @@ Các service hiện có:
 
 - `api-gateway`
 - `identity-service`
-- `access-service`
 - `tenant-service`
 - `subscription-service`
 - `competition-service`
@@ -67,7 +66,6 @@ Port mặc định:
 
 - gateway -> `8080`
 - identity -> `8081`
-- access -> `8082`
 - tenant -> `8083`
 - subscription -> `8084`
 - competition -> `8085`
@@ -76,7 +74,6 @@ Port mặc định:
 Database mặc định cho local profile:
 
 - identity -> `arenax_identity`
-- access -> `arenax_access`
 - tenant -> `arenax_tenant`
 - subscription -> `arenax_subscription`
 - competition -> `arenax_competition`
@@ -113,7 +110,6 @@ Gợi ý cấu hình:
 
 - `gateway-local` -> `com.bk.arenax.gateway.ApiGatewayApplication`
 - `identity-local` -> `com.bk.arenax.identity.IdentityServiceApplication`
-- `access-local` -> `com.bk.arenax.access.AccessServiceApplication`
 - `tenant-local` -> `com.bk.arenax.tenant.TenantServiceApplication`
 - `subscription-local` -> `com.bk.arenax.subscription.SubscriptionServiceApplication`
 - `competition-local` -> `com.bk.arenax.competition.CompetitionServiceApplication`
@@ -172,7 +168,7 @@ Những compound nên tạo sẵn:
 
 - `gateway-identity`
 - `gateway-competition-ranking`
-- `identity-tenant-access-subscription`
+- `identity-tenant-subscription`
 
 ## 9. Service Nào Cần PostgreSQL
 
@@ -181,7 +177,6 @@ Những compound nên tạo sẵn:
 Các service cần PostgreSQL local sẵn:
 
 - `identity-service`
-- `access-service`
 - `tenant-service`
 - `subscription-service`
 - `competition-service`
@@ -214,7 +209,6 @@ Debug onboarding:
 
 - `identity-service`
 - `tenant-service`
-- `access-service`
 - `subscription-service`
 
 Debug match/ranking:
@@ -249,7 +243,7 @@ Thứ tự dễ tiếp cận nhất hiện tại:
 1. start `gateway-local`
 2. start `competition-local`
 3. start `ranking-local`
-4. sau đó mới chuyển sang `identity`, `tenant`, `access`, `subscription`
+4. sau đó mới chuyển sang `identity`, `tenant`, `subscription`
 
 Lý do là flow competition/ranking hiện dễ nhìn hơn, ít dependency nhận thức hơn flow onboarding.
 

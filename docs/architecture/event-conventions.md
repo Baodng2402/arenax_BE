@@ -7,8 +7,8 @@ All integration events use this envelope:
 ```json
 {
   "eventId": "uuid",
-  "eventType": "identity.user.registered.v1",
-  "eventVersion": 1,
+  "eventType": "identity.user.registered.v2",
+  "eventVersion": 2,
   "occurredAt": "2026-07-13T10:00:00Z",
   "correlationId": "uuid",
   "producer": "identity-service",

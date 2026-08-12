@@ -13,6 +13,7 @@ import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
+import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,12 +53,16 @@ class RegistrationControllerIntegrationTests {
     @Autowired
     private RefreshSessionRepository refreshSessionRepository;
 
+    @Autowired
+    private UserIdentifierRepository userIdentifierRepository;
+
     @BeforeEach
     void setUp() {
         outboxEventRepository.deleteAll();
         refreshSessionRepository.deleteAll();
         passwordResetTokenRepository.deleteAll();
         emailVerificationTokenRepository.deleteAll();
+        userIdentifierRepository.deleteAll();
         userRepository.deleteAll();
     }
 

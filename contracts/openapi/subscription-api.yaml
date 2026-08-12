@@ -1,0 +1,122 @@
+openapi: 3.1.0
+info:
+  title: ArenaX Subscription API
+  version: 1.0.0
+  description: Account-context subscription API exposed through API Gateway and implemented by subscription-service.
+servers:
+  - url: https://api.arenax.example
+tags:
+  - name: Subscription
+paths:
+  /api/v1/subscriptions/current:
+    get:
+      tags: [Subscription]
+      summary: Get the subscription for the current account context
+      operationId: getCurrentSubscription
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current account subscription state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentSubscriptionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/subscriptions/current/plan:
+    patch:
+      tags: [Subscription]
+      summary: Change the plan for the current account context
+      operationId: changeCurrentSubscriptionPlan
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeSubscriptionPlanRequest'
+      responses:
+        '200':
+          description: Updated subscription state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentSubscriptionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/subscriptions/current/cancel:
+    post:
+      tags: [Subscription]
+      summary: Cancel the subscription for the current account context
+      operationId: cancelCurrentSubscription
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cancelled subscription state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentSubscriptionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Account context or plan input is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ChangeSubscriptionPlanRequest:
+      type: object
+      required: [plan]
+      properties:
+        plan:
+          type: string
+          enum: [FREE, PRO, TEAM]
+    CurrentSubscriptionResponse:
+      type: object
+      required: [accountId, plan, status, entitlements]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        plan:
+          type: string
+          enum: [FREE, PRO, TEAM]
+        status:
+          type: string
+          enum: [ACTIVE, CANCELLED]
+        entitlements:
+          type: array
+          items:
+            type: string
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string

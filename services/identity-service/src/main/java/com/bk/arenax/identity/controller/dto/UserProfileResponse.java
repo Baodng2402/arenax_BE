@@ -1,12 +1,16 @@
 package com.bk.arenax.identity.controller.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record UserProfileResponse(
         UUID userId,
-        String email,
+        String username,
+        String primaryEmail,
+        List<UserEmailResponse> emails,
         String fullName,
         String status,
         String avatarUrl,

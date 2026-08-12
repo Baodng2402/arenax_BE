@@ -30,7 +30,6 @@ password postgres
 Default database name theo service:
 
 - identity -> `arenax_identity`
-- access -> `arenax_access`
 - tenant -> `arenax_tenant`
 - subscription -> `arenax_subscription`
 - competition -> `arenax_competition`
@@ -83,7 +82,6 @@ Main class theo service:
 
 - `api-gateway` -> `com.bk.arenax.gateway.ApiGatewayApplication`
 - `identity-service` -> `com.bk.arenax.identity.IdentityServiceApplication`
-- `access-service` -> `com.bk.arenax.access.AccessServiceApplication`
 - `tenant-service` -> `com.bk.arenax.tenant.TenantServiceApplication`
 - `subscription-service` -> `com.bk.arenax.subscription.SubscriptionServiceApplication`
 - `competition-service` -> `com.bk.arenax.competition.CompetitionServiceApplication`
@@ -99,7 +97,6 @@ Khi chạy với profile `local`, port mặc định là:
 
 - gateway -> `8080`
 - identity -> `8081`
-- access -> `8082`
 - tenant -> `8083`
 - subscription -> `8084`
 - competition -> `8085`
@@ -131,7 +128,6 @@ docker run --name arenax-postgres \
 
 ```bash
 docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_identity;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_access;"
 docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_tenant;"
 docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_subscription;"
 docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_competition;"
@@ -204,9 +200,9 @@ Nghĩa là local flow chuẩn sẽ là:
 
 ### Bước 4: Start Gateway
 
-> ⚠️ **Quan trọng — Eureka:** route mặc định của gateway là `lb://identity-service` (load balancer qua discovery). Repo này **không có Eureka server**, nên nếu chạy gateway local mà không override route, mọi request sẽ lỗi `No servers available for identity-service`.
+> ⚠️ **Quan trọng — Eureka:** route mặc định của gateway là `lb://identity-service` (load balancer qua discovery). Repo có sẵn `discovery-server` trong `compose.yaml` — chạy `docker compose up -d discovery-server` rồi start các service với profile `local` là gateway resolve được downstream qua Eureka.
 
-Không có Eureka, override route sang URL trực tiếp khi start:
+Nếu chạy gateway local mà không muốn bật discovery-server, hoặc chạy các service không đăng ký Eureka, override route sang URL trực tiếp khi start:
 
 ```bash
 bin/run-service gateway --arenax.gateway.routes.identity-service=http://localhost:8081
@@ -219,7 +215,7 @@ Hoặc Gradle trực tiếp:
   --args='--spring.profiles.active=local --arenax.gateway.routes.identity-service=http://localhost:8081'
 ```
 
-(Khi nào repo có Eureka server chạy local thì bỏ override này đi.)
+Các route mới hơn có thể override tương tự: `--arenax.gateway.routes.tenant-service=http://localhost:8083`, `--arenax.gateway.routes.subscription-service=http://localhost:8084`.
 
 ### Bước 5: Start Service Bạn Đang Làm
 
@@ -245,7 +241,7 @@ Sau khi `identity-service` (8081) và `api-gateway` (8080) đã chạy, test lu�
 curl -X POST localhost:8080/api/v1/auth/register -H 'Content-Type: application/json' \
   -d '{"email":"dev@arenax.dev","password":"Sup3rSecret!","fullName":"Dev User"}'
 
-# 2. Lấy verification token từ bảng outbox (chưa có email thật — RabbitMQ chưa wiring)
+# 2. Lấy verification token từ bảng outbox (chưa có SMTP email thật — event `identity.user.verification-requested.v1` chưa có email-sender consumer)
 psql -U postgres -d arenax_identity -c \
   "select payload from outbox_events where event_type='identity.user.verification-requested.v1' order by created_at desc limit 1;"
 # → payload chứa "verificationToken": "...", lấy giá trị đó cho bước 3
@@ -265,7 +261,7 @@ curl localhost:8080/api/v1/users/me -H "Authorization: Bearer <accessToken>"
 curl -b /tmp/cookies.txt -X POST localhost:8080/api/v1/auth/refresh
 ```
 
-Chú ý: user **PENDING** vẫn login được (200, `status=PENDING` trong response) — app nên hiện thông báo verify. User **SUSPENDED/DEACTIVATED** sẽ bị chặn với 403.
+Chú ý: user **chưa verify email (PENDING)** sẽ bị chặn login với **401** — chỉ email identifier đã verify mới đăng nhập được. User **SUSPENDED/DEACTIVATED** sẽ bị chặn với 403.
 
 ## 7. Khi Nào Dùng Script, Khi Nào Dùng IDE
 

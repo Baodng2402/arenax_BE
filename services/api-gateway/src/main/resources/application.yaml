@@ -28,6 +28,8 @@ arenax:
   gateway:
     routes:
       identity-service: lb://identity-service
+      tenant-service: lb://tenant-service
+      subscription-service: lb://subscription-service
   security:
     jwt:
       issuer: arenax-identity

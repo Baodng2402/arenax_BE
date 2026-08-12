@@ -41,6 +41,9 @@ public class OutboxEvent extends BaseEntity {
     @Column(nullable = false)
     private String payload;
 
+    @Column(name = "published_at")
+    private Instant publishedAt;
+
     @PrePersist
     void assignId() {
         if (id == null) {

@@ -14,6 +14,7 @@ import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
+import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,12 +62,16 @@ class PasswordResetControllerIntegrationTests {
     @Autowired
     private RefreshSessionRepository refreshSessionRepository;
 
+    @Autowired
+    private UserIdentifierRepository userIdentifierRepository;
+
     @BeforeEach
     void setUp() {
         outboxEventRepository.deleteAll();
         refreshSessionRepository.deleteAll();
         passwordResetTokenRepository.deleteAll();
         emailVerificationTokenRepository.deleteAll();
+        userIdentifierRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -118,6 +123,49 @@ class PasswordResetControllerIntegrationTests {
 
         assertThat(passwordResetTokenRepository.findAll()).isEmpty();
         assertThat(outboxEventRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void requestPasswordResetAcceptsVerifiedSecondaryEmail() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        outboxEventRepository.deleteAll();
+
+        mockMvc.perform(post("/api/v1/users/me/emails")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "second@arenax.dev"
+                                }
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s"
+                                }
+                                """.formatted(extractToken("identity.user.verification-requested.v1", "verificationToken"))))
+                .andExpect(status().isNoContent());
+
+        outboxEventRepository.deleteAll();
+
+        mockMvc.perform(post("/api/v1/auth/request-password-reset")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "second@arenax.dev"
+                                }
+                                """))
+                .andExpect(status().isAccepted());
+
+        OutboxEvent resetEvent = outboxEventRepository.findAll().stream()
+                .filter(event -> event.getEventType().equals("identity.user.password-reset-requested.v1"))
+                .findFirst()
+                .orElseThrow();
+        JsonNode payload = objectMapper.readTree(resetEvent.getPayload()).path("payload");
+        assertThat(payload.path("email").asText()).isEqualTo("second@arenax.dev");
     }
 
     @Test

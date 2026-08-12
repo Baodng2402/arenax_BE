@@ -1,12 +1,16 @@
 package com.bk.arenax.identity.service;
 
 import com.bk.arenax.identity.controller.dto.AuthTokenResponse;
+import com.bk.arenax.identity.controller.dto.UserEmailResponse;
 import com.bk.arenax.identity.controller.dto.UserProfileResponse;
+import com.bk.arenax.identity.controller.dto.UsernameResponse;
 import com.bk.arenax.identity.domain.EmailVerificationToken;
 import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.PasswordResetToken;
 import com.bk.arenax.identity.domain.RefreshSession;
 import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.domain.UserIdentifier;
+import com.bk.arenax.identity.domain.UserIdentifierType;
 import com.bk.arenax.identity.domain.UserStatus;
 import com.bk.arenax.identity.messaging.EventEnvelope;
 import com.bk.arenax.identity.messaging.UserPasswordResetRequestedPayload;
@@ -16,6 +20,7 @@ import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
+import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +53,7 @@ public class UserService {
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   private final UserRepository userRepo;
+  private final UserIdentifierRepository userIdentifierRepository;
   private final EmailVerificationTokenRepository emailVerificationTokenRepository;
   private final OutboxEventRepository outboxEventRepository;
   private final RefreshSessionRepository refreshSessionRepository;
@@ -61,7 +67,7 @@ public class UserService {
   @Transactional
   public User register(String email, String password, String fullName){
     String normalizedEmail = normalizeEmail(email);
-    if(userRepo.existsByEmail(normalizedEmail)){
+    if(userIdentifierRepository.existsByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)){
       throw new IllegalArgumentException("Email already exists");
     }
 
@@ -71,11 +77,13 @@ public class UserService {
             fullName == null ? null : fullName.trim(),
             Instant.now());
     User savedUser = userRepo.save(user);
+    UserIdentifier primaryEmail = userIdentifierRepository.save(
+            UserIdentifier.primaryEmail(savedUser.getId(), normalizedEmail, null));
 
     Instant expiresAt = Instant.now().plus(EMAIL_VERIFICATION_TTL);
     String rawVerificationToken = generateOpaqueToken();
     emailVerificationTokenRepository.save(
-            EmailVerificationToken.issue(savedUser.getId(), hashToken(rawVerificationToken), expiresAt));
+            EmailVerificationToken.issue(savedUser.getId(), primaryEmail.getId(), hashToken(rawVerificationToken), expiresAt));
     outboxEventRepository.save(OutboxEvent.create(
             "identity.user.verification-requested.v1",
             1,
@@ -91,7 +99,7 @@ public class UserService {
                     "identity-service",
                     new UserVerificationRequestedPayload(
                             savedUser.getId(),
-                            savedUser.getEmail(),
+                            primaryEmail.getNormalizedValue(),
                             savedUser.getFullName(),
                             rawVerificationToken,
                             expiresAt)))));
@@ -109,33 +117,42 @@ public class UserService {
 
     User user = userRepo.findById(token.getUserId())
             .orElseThrow(() -> new IllegalStateException("User not found for verification token"));
+    UserIdentifier identifier = userIdentifierRepository.findById(token.getUserIdentifierId())
+            .orElseThrow(() -> new IllegalStateException("Identifier not found for verification token"));
 
+    boolean activatingUser = user.getStatus() == UserStatus.PENDING && identifier.isPrimary();
     token.consume(now);
-    user.verifyEmail(now);
+    identifier.verify(now);
+    if (activatingUser) {
+      user.verifyEmail(now);
+      outboxEventRepository.save(OutboxEvent.create(
+              "identity.user.registered.v2",
+              2,
+              user.getId(),
+              "identity-service",
+              now,
+              writePayload(new EventEnvelope<>(
+                      UUID.randomUUID(),
+                      "identity.user.registered.v2",
+                      2,
+                      now,
+                      user.getId(),
+                      "identity-service",
+                      new UserRegisteredPayload(
+                              user.getId(),
+                              user.getFullName())))));
+      return;
+    }
 
-    outboxEventRepository.save(OutboxEvent.create(
-            "identity.user.registered.v1",
-            1,
-            user.getId(),
-            "identity-service",
-            now,
-            writePayload(new EventEnvelope<>(
-                    UUID.randomUUID(),
-                    "identity.user.registered.v1",
-                    1,
-                    now,
-                    user.getId(),
-                    "identity-service",
-                    new UserRegisteredPayload(
-                            user.getId(),
-                            user.getEmail(),
-                            user.getFullName())))));
+    if (identifier.isPrimary()) {
+      user.setPrimaryEmail(identifier.getNormalizedValue(), identifier.getVerifiedAt());
+    }
   }
 
   @Transactional(noRollbackFor = {InvalidCredentialsException.class, AccountLockedException.class})
   public LoginResult login(String email, String password, UUID accountId) {
     String normalizedEmail = normalizeEmail(email);
-    User user = userRepo.findByEmail(normalizedEmail).orElse(null);
+    User user = findUserByVerifiedEmail(normalizedEmail).orElse(null);
     Instant now = Instant.now();
 
     if (user != null && user.isLockedAt(now)) {
@@ -161,7 +178,7 @@ public class UserService {
       throw new AuthenticationServiceException("Authentication failed", exception);
     }
 
-    user = userRepo.findByEmail(normalizedEmail)
+    user = findUserByVerifiedEmail(normalizedEmail)
             .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists"));
     user.recordSuccessfulLogin(now);
 
@@ -208,7 +225,9 @@ public class UserService {
 
   @Transactional
   public void requestPasswordReset(String email) {
-    userRepo.findByEmail(normalizeEmail(email)).ifPresent(user -> {
+    findVerifiedEmailIdentifier(normalizeEmail(email)).ifPresent(identifier -> {
+      User user = userRepo.findById(identifier.getUserId())
+              .orElseThrow(() -> new IllegalStateException("User not found for password reset identifier"));
       Instant now = Instant.now();
       Instant expiresAt = now.plus(PASSWORD_RESET_TTL);
       String rawResetToken = generateOpaqueToken();
@@ -229,7 +248,7 @@ public class UserService {
                       "identity-service",
                       new UserPasswordResetRequestedPayload(
                               user.getId(),
-                              user.getEmail(),
+                              identifier.getNormalizedValue(),
                               user.getFullName(),
                               rawResetToken,
                               expiresAt)))));
@@ -274,15 +293,17 @@ public class UserService {
 
     return new LoginResult(
             new AuthTokenResponse(
-                    accessToken,
-                    "Bearer",
-                    jwtService.getAccessTokenTtlSeconds(),
-                     new UserProfileResponse(
-                             user.getId(),
-                             user.getEmail(),
-                             user.getFullName(),
-                             user.getStatus().name(),
-                            user.getAvatarUrl(),
+                     accessToken,
+                     "Bearer",
+                     jwtService.getAccessTokenTtlSeconds(),
+                      new UserProfileResponse(
+                              user.getId(),
+                              user.getUsername(),
+                              requirePrimaryEmail(user.getId()).getNormalizedValue(),
+                              emailResponses(user.getId()),
+                              user.getFullName(),
+                              user.getStatus().name(),
+                             user.getAvatarUrl(),
                             user.getEmailVerifiedAt(),
                             accountId,
                              rbac.roles(),
@@ -312,11 +333,87 @@ public class UserService {
     return toProfileResponse(user, accountId);
   }
 
+  @Transactional(readOnly = true)
+  public List<UserEmailResponse> listEmails(UUID userId) {
+    userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+    return emailResponses(userId);
+  }
+
+  @Transactional
+  public UsernameResponse updateUsername(UUID userId, String username) {
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+    String normalizedUsername = normalizeUsername(username);
+    if (!normalizedUsername.equals(user.getUsername()) && userRepo.existsByUsername(normalizedUsername)) {
+      throw new IllegalArgumentException("Username already exists");
+    }
+    user.setUsername(normalizedUsername);
+    return new UsernameResponse(normalizedUsername);
+  }
+
+  @Transactional
+  public void clearUsername(UUID userId) {
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+    user.clearUsername();
+  }
+
+  @Transactional
+  public UserEmailResponse addEmail(UUID userId, String email) {
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+    String normalizedEmail = normalizeEmail(email);
+    if (userIdentifierRepository.existsByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)) {
+      throw new IllegalArgumentException("Email already exists");
+    }
+
+    UserIdentifier identifier = userIdentifierRepository.save(
+            UserIdentifier.secondaryEmail(userId, normalizedEmail));
+    issueVerification(identifier, user, Instant.now());
+    return toEmailResponse(identifier);
+  }
+
+  @Transactional
+  public UserProfileResponse setPrimaryEmail(UUID userId, UUID emailId, UUID accountId) {
+    User user = userRepo.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+    UserIdentifier target = userIdentifierRepository.findByIdAndUserIdAndType(emailId, userId, UserIdentifierType.EMAIL)
+            .orElseThrow(() -> new IllegalArgumentException("Email not found"));
+    if (!target.isVerified()) {
+      throw new IllegalArgumentException("Email must be verified before becoming primary");
+    }
+
+    List<UserIdentifier> identifiers = userIdentifierRepository
+            .findAllByUserIdAndTypeOrderByPrimaryDescCreatedAtAsc(userId, UserIdentifierType.EMAIL);
+    identifiers.forEach(identifier -> {
+      if (identifier.getId().equals(target.getId())) {
+        identifier.makePrimary();
+      } else {
+        identifier.makeSecondary();
+      }
+    });
+    user.setPrimaryEmail(target.getNormalizedValue(), target.getVerifiedAt());
+    return toProfileResponse(user, accountId);
+  }
+
+  @Transactional
+  public void removeEmail(UUID userId, UUID emailId) {
+    UserIdentifier identifier = userIdentifierRepository.findByIdAndUserIdAndType(emailId, userId, UserIdentifierType.EMAIL)
+            .orElseThrow(() -> new IllegalArgumentException("Email not found"));
+    if (identifier.isPrimary()) {
+      throw new IllegalArgumentException("Primary email cannot be removed");
+    }
+    emailVerificationTokenRepository.deleteAllByUserIdentifierId(identifier.getId());
+    userIdentifierRepository.delete(identifier);
+  }
+
   private UserProfileResponse toProfileResponse(User user, UUID accountId) {
     RbacService.RbacDetails rbac = rbacService.getUserRbac(user.getId());
     return new UserProfileResponse(
             user.getId(),
-            user.getEmail(),
+            user.getUsername(),
+            requirePrimaryEmail(user.getId()).getNormalizedValue(),
+            emailResponses(user.getId()),
             user.getFullName(),
             user.getStatus().name(),
             user.getAvatarUrl(),
@@ -328,6 +425,79 @@ public class UserService {
 
   private String normalizeEmail(String email){
     return email.trim().toLowerCase(Locale.ROOT);
+  }
+
+  private String normalizeUsername(String username) {
+    String normalized = username == null ? null : username.trim().toLowerCase(Locale.ROOT);
+    if (normalized == null || normalized.isBlank()) {
+      throw new IllegalArgumentException("Username must not be blank");
+    }
+    if (normalized.length() < 3 || normalized.length() > 40) {
+      throw new IllegalArgumentException("Username must be between 3 and 40 characters");
+    }
+    return normalized;
+  }
+
+  private java.util.Optional<User> findUserByEmail(String normalizedEmail) {
+    return userIdentifierRepository.findByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)
+            .flatMap(identifier -> userRepo.findById(identifier.getUserId()));
+  }
+
+  private java.util.Optional<User> findUserByVerifiedEmail(String normalizedEmail) {
+    return findVerifiedEmailIdentifier(normalizedEmail)
+            .flatMap(identifier -> userRepo.findById(identifier.getUserId()));
+  }
+
+  private java.util.Optional<UserIdentifier> findVerifiedEmailIdentifier(String normalizedEmail) {
+    return userIdentifierRepository.findByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)
+            .filter(UserIdentifier::isVerified);
+  }
+
+  private UserIdentifier requirePrimaryEmail(UUID userId) {
+    return userIdentifierRepository.findByUserIdAndTypeAndPrimaryTrue(userId, UserIdentifierType.EMAIL)
+            .orElseThrow(() -> new IllegalStateException("Primary email not found for user"));
+  }
+
+  private List<UserEmailResponse> emailResponses(UUID userId) {
+    return userIdentifierRepository.findAllByUserIdAndTypeOrderByPrimaryDescCreatedAtAsc(userId, UserIdentifierType.EMAIL)
+            .stream()
+            .map(this::toEmailResponse)
+            .toList();
+  }
+
+  private UserEmailResponse toEmailResponse(UserIdentifier identifier) {
+    return new UserEmailResponse(
+            identifier.getId(),
+            identifier.getNormalizedValue(),
+            identifier.isPrimary(),
+            identifier.isVerified(),
+            identifier.getVerifiedAt());
+  }
+
+  private void issueVerification(UserIdentifier identifier, User user, Instant now) {
+    Instant expiresAt = now.plus(EMAIL_VERIFICATION_TTL);
+    String rawVerificationToken = generateOpaqueToken();
+    emailVerificationTokenRepository.save(
+            EmailVerificationToken.issue(user.getId(), identifier.getId(), hashToken(rawVerificationToken), expiresAt));
+    outboxEventRepository.save(OutboxEvent.create(
+            "identity.user.verification-requested.v1",
+            1,
+            user.getId(),
+            "identity-service",
+            now,
+            writePayload(new EventEnvelope<>(
+                    UUID.randomUUID(),
+                    "identity.user.verification-requested.v1",
+                    1,
+                    now,
+                    user.getId(),
+                    "identity-service",
+                    new UserVerificationRequestedPayload(
+                            user.getId(),
+                            identifier.getNormalizedValue(),
+                            user.getFullName(),
+                            rawVerificationToken,
+                            expiresAt)))));
   }
 
   private String generateOpaqueToken() {

@@ -1,4 +1,7 @@
 arenax:
+  messaging:
+    relay:
+      enabled: false
   security:
     jwt:
       issuer: arenax-identity

@@ -26,6 +26,9 @@ public class EmailVerificationToken {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
+    @Column(name = "user_identifier_id", nullable = false)
+    private UUID userIdentifierId;
+
     @Column(name = "token_hash", nullable = false, length = 128)
     private String tokenHash;
 
@@ -56,9 +59,10 @@ public class EmailVerificationToken {
         updatedAt = Instant.now();
     }
 
-    public static EmailVerificationToken issue(UUID userId, String tokenHash, Instant expiresAt) {
+    public static EmailVerificationToken issue(UUID userId, UUID userIdentifierId, String tokenHash, Instant expiresAt) {
         EmailVerificationToken token = new EmailVerificationToken();
         token.userId = Objects.requireNonNull(userId);
+        token.userIdentifierId = Objects.requireNonNull(userIdentifierId);
         token.tokenHash = Objects.requireNonNull(tokenHash);
         token.expiresAt = Objects.requireNonNull(expiresAt);
         return token;

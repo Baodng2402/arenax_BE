@@ -11,9 +11,9 @@
 The repository is currently source-first:
 
 - service code and tests are implemented
-- RabbitMQ runtime wiring is not implemented yet
-- Docker Compose is intentionally not defined yet
-- CI/CD and VPS deployment are intentionally not defined yet
+- RabbitMQ broker runtime is wired (outbox relay + listeners; broker provided by `compose.yaml`)
+- Docker Compose defines Postgres, Redis và discovery-server (`compose.yaml`)
+- CI/CD và VPS deployment chưa được định nghĩa
 
 ## Important Reality Check
 
@@ -60,7 +60,6 @@ bin/run-local-stack start
 Các persistence service như:
 
 - `identity-service`
-- `access-service`
 - `tenant-service`
 - `subscription-service`
 - `competition-service`
@@ -86,7 +85,6 @@ Each service has:
 Gateway currently expects downstream services at these ports:
 
 - `identity-service`: `8081`
-- `access-service`: `8082`
 - `tenant-service`: `8083`
 - `subscription-service`: `8084`
 - `competition-service`: `8085`

@@ -1,14 +1,11 @@
 # Access Service
 
-Responsibilities:
+> **Merged into Identity Service.** The `access-service` module no longer exists.
 
-- define permissions and roles
-- assign roles per account
-- emit authorization change events for downstream projections
+Its responsibilities moved into `identity-service`:
 
-Current onboarding behavior:
+- define permissions and roles (`permissions`, `roles`, `role_permissions`)
+- assign roles per account (`role_assignments`)
+- include `roles` / `permissions` claims in issued JWTs
 
-- consumes `tenant.personal-account-created.v1`
-- grants default `USER` role
-- emits `access.default-role-granted.v1`
-- emits `access.authorization-changed.v1`
+See [Identity Service](identity.md) for the current state.

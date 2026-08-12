@@ -18,8 +18,7 @@ Repo này chưa cố gắng hoàn thiện deployment production ngay lập tức
 Các service hiện có:
 
 - `api-gateway`: cửa vào HTTP chung
-- `identity-service`: đăng ký, đăng nhập, token, onboarding progress
-- `access-service`: roles, permissions, role assignments theo account
+- `identity-service`: đăng ký, đăng nhập, token, user identifiers/email, RBAC (roles, permissions, role assignments theo account)
 - `tenant-service`: account và membership
 - `subscription-service`: subscription theo account
 - `competition-service`: sport, match, participant, kết quả trận
@@ -35,7 +34,6 @@ gradle/libs.versions.toml    version catalog
 services/
 ├── api-gateway/
 ├── identity-service/
-├── access-service/
 ├── tenant-service/
 ├── subscription-service/
 ├── competition-service/
@@ -63,7 +61,7 @@ services/
 - có service-local tests cho các flow chính
 - có gateway routing cơ bản
 
-Nhưng vẫn còn thiếu phần runtime integration như RabbitMQ wiring, Docker Compose, CI/CD và observability.
+Nhưng vẫn còn thiếu phần runtime integration như CI/CD và observability. Docker Compose hiện có Postgres, Redis, discovery-server và RabbitMQ.
 
 ## Nên Đọc Gì Sau File Này
 

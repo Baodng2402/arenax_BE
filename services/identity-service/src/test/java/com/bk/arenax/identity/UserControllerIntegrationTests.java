@@ -4,15 +4,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.domain.UserIdentifier;
 import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
+import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,12 +56,16 @@ class UserControllerIntegrationTests {
     @Autowired
     private PasswordResetTokenRepository passwordResetTokenRepository;
 
+    @Autowired
+    private UserIdentifierRepository userIdentifierRepository;
+
     @BeforeEach
     void setUp() {
         outboxEventRepository.deleteAll();
         refreshSessionRepository.deleteAll();
         passwordResetTokenRepository.deleteAll();
         emailVerificationTokenRepository.deleteAll();
+        userIdentifierRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -69,7 +77,11 @@ class UserControllerIntegrationTests {
                         .header("X-Arenax-User-Id", userId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.email").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.username").doesNotExist())
+                .andExpect(jsonPath("$.primaryEmail").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.emails[0].email").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.emails[0].primary").value(true))
+                .andExpect(jsonPath("$.emails[0].verified").value(true))
                 .andExpect(jsonPath("$.fullName").value("Player One"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.roles").isArray())
@@ -112,7 +124,7 @@ class UserControllerIntegrationTests {
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.email").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.primaryEmail").value("player1@arenax.dev"))
                 .andExpect(jsonPath("$.fullName").value("Player One"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
@@ -163,6 +175,122 @@ class UserControllerIntegrationTests {
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
     }
 
+    @Test
+    void putUsernameSetsPublicHandleAndDeleteClearsIt() throws Exception {
+        UUID userId = registerAndVerifyUser();
+
+        mockMvc.perform(put("/api/v1/users/me/username")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "ArenaMaster"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("arenamaster"));
+
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("X-Arenax-User-Id", userId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("arenamaster"));
+
+        mockMvc.perform(delete("/api/v1/users/me/username")
+                        .header("X-Arenax-User-Id", userId.toString()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("X-Arenax-User-Id", userId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").doesNotExist());
+    }
+
+    @Test
+    void addEmailCreatesSecondaryIdentifierAndSetPrimaryRequiresVerifiedEmail() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        outboxEventRepository.deleteAll();
+
+        String response = mockMvc.perform(post("/api/v1/users/me/emails")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "Second@ArenaX.dev"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("second@arenax.dev"))
+                .andExpect(jsonPath("$.primary").value(false))
+                .andExpect(jsonPath("$.verified").value(false))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode emailBody = objectMapper.readTree(response);
+        String emailId = emailBody.path("id").asText();
+
+        assertThat(userIdentifierRepository.findAll()).hasSize(2);
+        OutboxEvent verificationEvent = outboxEventRepository.findAll().getFirst();
+        assertThat(verificationEvent.getEventType()).isEqualTo("identity.user.verification-requested.v1");
+        assertThat(objectMapper.readTree(verificationEvent.getPayload()).path("payload").path("email").asText())
+                .isEqualTo("second@arenax.dev");
+
+        mockMvc.perform(patch("/api/v1/users/me/emails/{emailId}/primary", emailId)
+                        .header("X-Arenax-User-Id", userId.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+    }
+
+    @Test
+    void verifiedSecondaryEmailCanBecomePrimaryAndOldPrimaryCannotBeDeletedUntilSwitched() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        outboxEventRepository.deleteAll();
+
+        String response = mockMvc.perform(post("/api/v1/users/me/emails")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "Second@ArenaX.dev"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String emailId = objectMapper.readTree(response).path("id").asText();
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s"
+                                }
+                                """.formatted(extractVerificationToken(outboxEventRepository.findAll()))))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(patch("/api/v1/users/me/emails/{emailId}/primary", emailId)
+                        .header("X-Arenax-User-Id", userId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.primaryEmail").value("second@arenax.dev"))
+                .andExpect(jsonPath("$.emails[0].email").value("second@arenax.dev"))
+                .andExpect(jsonPath("$.emails[0].primary").value(true));
+
+        User user = userRepository.findById(userId).orElseThrow();
+        assertThat(user.getEmail()).isEqualTo("second@arenax.dev");
+
+        UserIdentifier originalPrimary = userIdentifierRepository.findAll().stream()
+                .filter(identifier -> identifier.getNormalizedValue().equals("player1@arenax.dev"))
+                .findFirst()
+                .orElseThrow();
+
+        mockMvc.perform(delete("/api/v1/users/me/emails/{emailId}", originalPrimary.getId())
+                        .header("X-Arenax-User-Id", userId.toString()))
+                .andExpect(status().isNoContent());
+
+        assertThat(userIdentifierRepository.findAll()).hasSize(1);
+    }
+
     private UUID registerAndVerifyUser() throws Exception {
         MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -197,7 +325,7 @@ class UserControllerIntegrationTests {
     private String extractVerificationToken(List<OutboxEvent> outboxEvents) throws Exception {
         OutboxEvent verificationEvent = outboxEvents.stream()
                 .filter(event -> event.getEventType().equals("identity.user.verification-requested.v1"))
-                .findFirst()
+                .reduce((first, second) -> second)
                 .orElseThrow();
         JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
         return payload.path("payload").path("verificationToken").asText();

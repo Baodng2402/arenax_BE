@@ -1,0 +1,4 @@
+arenax:
+  messaging:
+    relay:
+      enabled: false
