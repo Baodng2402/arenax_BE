@@ -44,3 +44,7 @@ secrets/
 
 ### Gradle build-logic cache ###
 .kotlin/
+
+# Kotlin language server artifacts
+kls_database.db
+kls_database.lock.db
