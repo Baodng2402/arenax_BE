@@ -36,6 +36,16 @@ public class GatewayRouteConfiguration {
                         .route(path("/api/v1/subscriptions/**"), http())
                         .before(uri(routesProperties.subscriptionService()))
                         .before(gatewayHeaderFilter.protectedRouteHeaders())
+                        .build())
+                .and(route("competition-sports-route")
+                        .route(path("/api/v1/sports/**"), http())
+                        .before(uri(routesProperties.competitionService()))
+                        .before(gatewayHeaderFilter.protectedRouteHeaders())
+                        .build())
+                .and(route("competition-matches-route")
+                        .route(path("/api/v1/matches/**"), http())
+                        .before(uri(routesProperties.competitionService()))
+                        .before(gatewayHeaderFilter.protectedRouteHeaders())
                         .build());
     }
 }

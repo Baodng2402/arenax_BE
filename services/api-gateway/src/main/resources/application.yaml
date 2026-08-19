@@ -30,6 +30,7 @@ arenax:
       identity-service: lb://identity-service
       tenant-service: lb://tenant-service
       subscription-service: lb://subscription-service
+      competition-service: lb://competition-service
   security:
     jwt:
       issuer: arenax-identity

@@ -91,6 +91,7 @@ class GatewayIntegrationTests {
         registry.add("arenax.security.jwt.issuer", () -> "arenax-identity");
         registry.add("arenax.security.jwt.audience", () -> "arenax-api");
         registry.add("arenax.security.jwt.jwk-set-uri", () -> "http://127.0.0.1:" + jwksServer.getAddress().getPort() + "/.well-known/jwks.json");
+        registry.add("arenax.gateway.routes.competition-service", () -> "http://127.0.0.1:" + downstreamServer.getAddress().getPort());
     }
 
     @Test
@@ -182,6 +183,37 @@ class GatewayIntegrationTests {
                 .andExpect(jsonPath("$.accountId").value("account-subscription-1"))
                 .andExpect(jsonPath("$.roles").value("OWNER"))
                 .andExpect(jsonPath("$.permissions").value("SUBSCRIPTION:WRITE"));
+    }
+
+    @Test
+    void competitionRouteProxiesTrustedAccountHeaders() throws Exception {
+        String userId = UUID.randomUUID().toString();
+        String sessionId = UUID.randomUUID().toString();
+        String token = issueToken(userId, sessionId, "account-competition-1", List.of("OWNER"), List.of("SPORT:WRITE", "MATCH:JOIN"));
+
+        mockMvc.perform(get("/api/v1/sports")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Request-Id", "req-sports-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.path").value("/api/v1/sports"))
+                .andExpect(jsonPath("$.requestId").value("req-sports-1"))
+                .andExpect(jsonPath("$.userId").value(userId))
+                .andExpect(jsonPath("$.sessionId").value(sessionId))
+                .andExpect(jsonPath("$.accountId").value("account-competition-1"))
+                .andExpect(jsonPath("$.roles").value("OWNER"))
+                .andExpect(jsonPath("$.permissions").value("SPORT:WRITE,MATCH:JOIN"));
+
+        mockMvc.perform(get("/api/v1/matches")
+                        .header("Authorization", "Bearer " + token)
+                        .header("X-Request-Id", "req-matches-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.path").value("/api/v1/matches"))
+                .andExpect(jsonPath("$.requestId").value("req-matches-1"))
+                .andExpect(jsonPath("$.userId").value(userId))
+                .andExpect(jsonPath("$.sessionId").value(sessionId))
+                .andExpect(jsonPath("$.accountId").value("account-competition-1"))
+                .andExpect(jsonPath("$.roles").value("OWNER"))
+                .andExpect(jsonPath("$.permissions").value("SPORT:WRITE,MATCH:JOIN"));
     }
 
     private static String issueToken(

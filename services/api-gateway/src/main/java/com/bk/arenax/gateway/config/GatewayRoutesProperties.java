@@ -6,5 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record GatewayRoutesProperties(
         String identityService,
         String tenantService,
-        String subscriptionService) {
+        String subscriptionService,
+        String competitionService) {
 }
