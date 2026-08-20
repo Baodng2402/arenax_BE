@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # ArenaX Service Boundaries
 
 ## Services
@@ -8,6 +10,7 @@
 - `competition-service`: sports, matches, teams, participants.
 - `ranking-service`: player rating, leaderboard, ranking history.
 - `api-gateway`: ingress routing and cross-cutting HTTP concerns.
+- `libs/messaging-foundation`: shared, non-persistent messaging types — `EventEnvelope`, and the outbox relay contract (`PendingOutboxEvent`, `OutboxEventStore`, `OutboxEventRelay`). Each service keeps its own `OutboxEvent` entity and repository; the relay is wired per service via `OutboxEventStoreAdapter` + `OutboxEventRelayConfiguration`.
 
 ## Boundary Rules
 

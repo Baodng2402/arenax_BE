@@ -7,7 +7,7 @@ import com.bk.arenax.tenant.domain.entity.Membership;
 import com.bk.arenax.tenant.domain.entity.OutboxEvent;
 import com.bk.arenax.tenant.domain.enums.AccountType;
 import com.bk.arenax.tenant.domain.enums.MembershipRole;
-import com.bk.arenax.tenant.messaging.EventEnvelope;
+import com.bk.arenax.messaging.EventEnvelope;
 import com.bk.arenax.tenant.messaging.UserRegisteredPayload;
 import com.bk.arenax.tenant.repository.AccountRepository;
 import com.bk.arenax.tenant.repository.MembershipRepository;

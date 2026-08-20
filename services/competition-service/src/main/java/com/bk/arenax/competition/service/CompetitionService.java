@@ -12,7 +12,7 @@ import com.bk.arenax.competition.dto.request.CreateSportRequest;
 import com.bk.arenax.competition.dto.request.JoinMatchRequest;
 import com.bk.arenax.competition.dto.response.MatchResponse;
 import com.bk.arenax.competition.dto.response.SportResponse;
-import com.bk.arenax.competition.messaging.EventEnvelope;
+import com.bk.arenax.messaging.EventEnvelope;
 import com.bk.arenax.competition.messaging.MatchCompletedPayload;
 import com.bk.arenax.competition.repository.MatchParticipantRepository;
 import com.bk.arenax.competition.repository.MatchRepository;

@@ -1,5 +1,6 @@
 package com.bk.arenax.tenant.domain.entity;
 
+import com.bk.arenax.messaging.PendingOutboxEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -16,7 +17,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "outbox_events")
-public class OutboxEvent extends BaseEntity {
+public class OutboxEvent extends BaseEntity implements PendingOutboxEvent {
 
     @Id
     private UUID id;

@@ -19,6 +19,11 @@ import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -262,6 +267,26 @@ class PasswordResetControllerIntegrationTests {
                 .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
     }
 
+    @Test
+    void resetPasswordRejectsExpiredTokenAsGone() throws Exception {
+        UUID userId = registerAndVerifyUser();
+
+        String rawToken = "expired-reset-token-value-0123456789abcdef";
+        passwordResetTokenRepository.save(PasswordResetToken.issue(
+                userId, hashToken(rawToken), Instant.now().minusSeconds(1)));
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s",
+                                  "newPassword": "An0therSecret!"
+                                }
+                                """.formatted(rawToken)))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
+    }
+
     private UUID registerAndVerifyUser() throws Exception {
         MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -328,5 +353,15 @@ class PasswordResetControllerIntegrationTests {
             return;
         }
         throw new AssertionError("Expected authentication to fail");
+    }
+
+    private static String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 not available", exception);
+        }
     }
 }

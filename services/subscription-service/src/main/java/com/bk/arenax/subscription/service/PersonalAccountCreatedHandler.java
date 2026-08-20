@@ -4,7 +4,7 @@ import com.bk.arenax.subscription.domain.entity.OutboxEvent;
 import com.bk.arenax.subscription.domain.entity.Subscription;
 import com.bk.arenax.subscription.domain.enums.SubscriptionPlan;
 import com.bk.arenax.subscription.domain.enums.SubscriptionStatus;
-import com.bk.arenax.subscription.messaging.EventEnvelope;
+import com.bk.arenax.messaging.EventEnvelope;
 import com.bk.arenax.subscription.messaging.PersonalAccountCreatedPayload;
 import com.bk.arenax.subscription.messaging.SubscriptionActivatedPayload;
 import com.bk.arenax.subscription.repository.OutboxEventRepository;

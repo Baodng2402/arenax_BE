@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # Remaining Work Tracker
 
 Trạng thái triển khai thực tế so với plan platform-core. Cập nhật khi có thay đổi; chi tiết theo từng mục xem `05-current-status-and-gaps.md`.

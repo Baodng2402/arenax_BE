@@ -1,6 +1,6 @@
 package com.bk.arenax.identity.controller;
 
-import com.bk.arenax.identity.controller.dto.ErrorResponse;
+import com.bk.arenax.identity.dto.response.ErrorResponse;
 import com.bk.arenax.identity.service.AccountLockedException;
 import com.bk.arenax.identity.service.AccountStatusException;
 import com.bk.arenax.identity.service.InvalidCredentialsException;

@@ -206,6 +206,98 @@ class UserControllerIntegrationTests {
     }
 
     @Test
+    void putUsernameRejectsUsernameAlreadyTakenByAnotherUser() throws Exception {
+        UUID firstUser = registerAndVerifyUser();
+
+        mockMvc.perform(put("/api/v1/users/me/username")
+                        .header("X-Arenax-User-Id", firstUser.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "ArenaMaster"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        MvcResult secondRegister = mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "player2@arenax.dev",
+                                  "password": "Sup3rSecret!",
+                                  "fullName": "Player Two"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn();
+        UUID secondUser = UUID.fromString(objectMapper.readTree(secondRegister.getResponse().getContentAsString())
+                .path("userId")
+                .asText());
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s"
+                                }
+                                """.formatted(extractVerificationToken(outboxEventRepository.findAll()))))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(put("/api/v1/users/me/username")
+                        .header("X-Arenax-User-Id", secondUser.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "arenamaster"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+    }
+
+    @Test
+    void putUsernameIsIdempotentWhenReSettingOwnUsername() throws Exception {
+        UUID userId = registerAndVerifyUser();
+
+        mockMvc.perform(put("/api/v1/users/me/username")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "ArenaMaster"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/v1/users/me/username")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "arenamaster"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("arenamaster"));
+    }
+
+    @Test
+    void putUsernameRejectsTooShortUsername() throws Exception {
+        UUID userId = registerAndVerifyUser();
+
+        mockMvc.perform(put("/api/v1/users/me/username")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "ab"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+    }
+
+    @Test
     void addEmailCreatesSecondaryIdentifierAndSetPrimaryRequiresVerifiedEmail() throws Exception {
         UUID userId = registerAndVerifyUser();
         outboxEventRepository.deleteAll();

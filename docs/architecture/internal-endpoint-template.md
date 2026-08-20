@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # ArenaX Internal Endpoint Template
 
 Template này dùng khi một service cần expose HTTP nội bộ cho service khác gọi qua OpenFeign.

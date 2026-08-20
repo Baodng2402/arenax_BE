@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # Access Service
 
 > **Merged into Identity Service.** The `access-service` module no longer exists.

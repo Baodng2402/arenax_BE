@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # Running Individual Services
 
 Tài liệu này chỉ tập trung vào một việc: chạy từng service sau khi repo đã tách sang multi-project microservices.

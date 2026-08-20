@@ -48,3 +48,6 @@ secrets/
 # Kotlin language server artifacts
 kls_database.db
 kls_database.lock.db
+
+### macOS ###
+.DS_Store

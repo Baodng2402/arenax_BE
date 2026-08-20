@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # ArenaX Onboarding Guide
 
 Chào mừng bạn đến với dự án ArenaX Backend! Tài liệu này định hướng nhanh cho developer mới tham gia dự án.

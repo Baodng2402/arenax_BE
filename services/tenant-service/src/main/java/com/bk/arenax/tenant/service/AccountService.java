@@ -1,7 +1,7 @@
 package com.bk.arenax.tenant.service;
 
-import com.bk.arenax.tenant.controller.dto.AccountSummaryResponse;
-import com.bk.arenax.tenant.controller.dto.MembershipResponse;
+import com.bk.arenax.tenant.dto.response.AccountSummaryResponse;
+import com.bk.arenax.tenant.dto.response.MembershipResponse;
 import com.bk.arenax.tenant.domain.entity.Account;
 import com.bk.arenax.tenant.domain.entity.Membership;
 import com.bk.arenax.tenant.domain.enums.AccountStatus;

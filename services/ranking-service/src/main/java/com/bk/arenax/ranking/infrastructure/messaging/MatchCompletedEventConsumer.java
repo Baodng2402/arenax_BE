@@ -1,6 +1,6 @@
 package com.bk.arenax.ranking.infrastructure.messaging;
 
-import com.bk.arenax.ranking.messaging.EventEnvelope;
+import com.bk.arenax.messaging.EventEnvelope;
 import com.bk.arenax.ranking.messaging.MatchCompletedPayload;
 import com.bk.arenax.ranking.service.MatchCompletedHandler;
 import com.fasterxml.jackson.core.JsonProcessingException;

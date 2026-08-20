@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # Identity Service
 
 Responsibilities:
@@ -32,3 +34,12 @@ Public API (via gateway, `/api/v1`):
 - `GET /users/me/emails`, `POST /users/me/emails`
 - `PATCH /users/me/emails/{emailId}/primary`, `DELETE /users/me/emails/{emailId}`
 - `GET /.well-known/jwks.json`
+
+Internal structure (`com.bk.arenax.identity.service`):
+
+- `RegistrationService`: `register`, `verifyEmail`.
+- `AuthenticationService`: `login`, `refresh`, `logout`, `logoutAll`, `refreshTokenTtlSeconds` (issues JWTs, owns `LoginResult`).
+- `PasswordResetService`: `requestPasswordReset`, `resetPassword`.
+- `ProfileService`: `getProfile`, `updateProfile`.
+- `UserEmailService`: `listEmails`, `updateUsername`, `clearUsername`, `addEmail`, `setPrimaryEmail`, `removeEmail`.
+- `service/support/`: shared helpers `IdentityTokenHasher`, `IdentityTokenGenerator`, `IdentityEventSerializer`, `EmailNormalizationService`.

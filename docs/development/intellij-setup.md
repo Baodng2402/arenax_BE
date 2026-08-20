@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # IntelliJ Setup
 
 Tài liệu này dành cho người mới vào repo và muốn chạy service trực tiếp bằng IntelliJ IDEA.

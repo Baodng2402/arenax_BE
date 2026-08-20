@@ -19,6 +19,7 @@ dependencyResolutionManagement {
 rootProject.name = "arenax"
 
 include(
+    "libs:messaging-foundation",
     "services:api-gateway",
     "services:identity-service",
     "services:tenant-service",

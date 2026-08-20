@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.bk.arenax.ranking.messaging.EventEnvelope;
+import com.bk.arenax.messaging.EventEnvelope;
 import com.bk.arenax.ranking.messaging.MatchCompletedPayload;
 import com.bk.arenax.ranking.repository.PlayerRankingRepository;
 import com.bk.arenax.ranking.repository.RankingHistoryRepository;

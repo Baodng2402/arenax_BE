@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # ArenaX Service Mesh Security Baseline
 
 Doc này mô tả baseline production cho mô hình `Gateway-only public access` đã implement trong code.
