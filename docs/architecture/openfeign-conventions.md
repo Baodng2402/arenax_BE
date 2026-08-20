@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # ArenaX OpenFeign Conventions
 
 ArenaX dùng OpenFeign cho các HTTP call nội bộ hẹp giữa service với service.

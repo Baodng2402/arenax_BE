@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # Running The Stack Locally
 
 Tài liệu này hướng dẫn chi tiết cách chạy hệ thống microservices Arenax-BE trên môi trường local, tận dụng **Docker Compose**, **Spring Boot Docker Compose Integration**, và cấu trúc multi-module mới.

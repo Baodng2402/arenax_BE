@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # ArenaX Service Template
 
 Tài liệu này là template chuẩn để tạo một service mới hoặc một vertical slice mới trong service hiện có.

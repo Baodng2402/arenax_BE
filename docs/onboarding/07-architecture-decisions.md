@@ -1,3 +1,5 @@
+> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+
 # 07. Architecture Decisions
 
 Tài liệu này giải thích ngắn gọn vì sao repo đang ở trạng thái hiện tại.
