@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.bk.arenax.identity.domain.EmailVerificationToken;
 import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.domain.UserIdentifier;
 import com.bk.arenax.identity.domain.UserStatus;
 import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
@@ -17,6 +18,11 @@ import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -140,6 +146,26 @@ class VerifyEmailControllerIntegrationTests {
                 .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
     }
 
+    @Test
+    void verifyEmailRejectsExpiredTokenAsGone() throws Exception {
+        UUID userId = registerPendingUser();
+        UserIdentifier identifier = userIdentifierRepository.findAll().getFirst();
+
+        String rawToken = "expired-verification-token-value";
+        emailVerificationTokenRepository.save(EmailVerificationToken.issue(
+                userId, identifier.getId(), hashToken(rawToken), Instant.now().minusSeconds(1)));
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "token": "%s"
+                                }
+                                """.formatted(rawToken)))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
+    }
+
     private UUID registerPendingUser() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -164,5 +190,15 @@ class VerifyEmailControllerIntegrationTests {
                 .orElseThrow();
         JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
         return payload.path("payload").path("verificationToken").asText();
+    }
+
+    private static String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 not available", exception);
+        }
     }
 }
