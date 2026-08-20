@@ -22,15 +22,16 @@ import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
 import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
+import com.bk.arenax.identity.service.support.EmailNormalizationService;
+import com.bk.arenax.identity.service.support.IdentityEventSerializer;
+import com.bk.arenax.identity.service.support.IdentityTokenGenerator;
+import com.bk.arenax.identity.service.support.IdentityTokenHasher;
+import com.bk.arenax.messaging.EventEnvelope;
+import com.bk.arenax.identity.messaging.UserPasswordResetRequestedPayload;
+import com.bk.arenax.identity.messaging.UserRegisteredPayload;
+import com.bk.arenax.identity.messaging.UserVerificationRequestedPayload;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -50,7 +51,6 @@ public class UserService {
   private static final Duration PASSWORD_RESET_TTL = Duration.ofHours(1);
   private static final Duration LOGIN_LOCK_DURATION = Duration.ofMinutes(15);
   private static final int MAX_FAILED_LOGIN_ATTEMPTS = 5;
-  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   private final UserRepository userRepo;
   private final UserIdentifierRepository userIdentifierRepository;
@@ -59,14 +59,17 @@ public class UserService {
   private final RefreshSessionRepository refreshSessionRepository;
   private final PasswordResetTokenRepository passwordResetTokenRepository;
   private final PasswordEncoder passwordEncoder;
-  private final ObjectMapper objectMapper;
   private final AuthenticationManager authenticationManager;
   private final com.bk.arenax.identity.infrastructure.jwt.JwtService jwtService;
   private final RbacService rbacService;
+  private final IdentityTokenHasher tokenHasher;
+  private final IdentityTokenGenerator tokenGenerator;
+  private final IdentityEventSerializer eventSerializer;
+  private final EmailNormalizationService emailNormalizationService;
 
   @Transactional
   public User register(String email, String password, String fullName){
-    String normalizedEmail = normalizeEmail(email);
+    String normalizedEmail = emailNormalizationService.normalize(email);
     if(userIdentifierRepository.existsByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)){
       throw new IllegalArgumentException("Email already exists");
     }
@@ -81,16 +84,16 @@ public class UserService {
             UserIdentifier.primaryEmail(savedUser.getId(), normalizedEmail, null));
 
     Instant expiresAt = Instant.now().plus(EMAIL_VERIFICATION_TTL);
-    String rawVerificationToken = generateOpaqueToken();
+    String rawVerificationToken = tokenGenerator.generate();
     emailVerificationTokenRepository.save(
-            EmailVerificationToken.issue(savedUser.getId(), primaryEmail.getId(), hashToken(rawVerificationToken), expiresAt));
+            EmailVerificationToken.issue(savedUser.getId(), primaryEmail.getId(), tokenHasher.hash(rawVerificationToken), expiresAt));
     outboxEventRepository.save(OutboxEvent.create(
             "identity.user.verification-requested.v1",
             1,
             savedUser.getId(),
             "identity-service",
             Instant.now(),
-            writePayload(new EventEnvelope<>(
+            eventSerializer.writePayload(new EventEnvelope<>(
                     UUID.randomUUID(),
                     "identity.user.verification-requested.v1",
                     1,
@@ -109,7 +112,7 @@ public class UserService {
   @Transactional
   public void verifyEmail(String rawToken) {
     Instant now = Instant.now();
-    EmailVerificationToken token = emailVerificationTokenRepository.findByTokenHash(hashToken(rawToken))
+    EmailVerificationToken token = emailVerificationTokenRepository.findByTokenHash(tokenHasher.hash(rawToken))
             .orElseThrow(() -> new IllegalArgumentException("Invalid verification token"));
     if (!token.isAvailableAt(now)) {
       throw new IllegalStateException("Verification token is no longer valid");
@@ -131,7 +134,7 @@ public class UserService {
               user.getId(),
               "identity-service",
               now,
-              writePayload(new EventEnvelope<>(
+              eventSerializer.writePayload(new EventEnvelope<>(
                       UUID.randomUUID(),
                       "identity.user.registered.v2",
                       2,
@@ -151,7 +154,7 @@ public class UserService {
 
   @Transactional(noRollbackFor = {InvalidCredentialsException.class, AccountLockedException.class})
   public LoginResult login(String email, String password, UUID accountId) {
-    String normalizedEmail = normalizeEmail(email);
+    String normalizedEmail = emailNormalizationService.normalize(email);
     User user = findUserByVerifiedEmail(normalizedEmail).orElse(null);
     Instant now = Instant.now();
 
@@ -188,7 +191,7 @@ public class UserService {
   @Transactional(noRollbackFor = IllegalStateException.class)
   public LoginResult refresh(String rawRefreshToken) {
     Instant now = Instant.now();
-    RefreshSession currentSession = refreshSessionRepository.findByTokenHash(hashToken(rawRefreshToken))
+    RefreshSession currentSession = refreshSessionRepository.findByTokenHash(tokenHasher.hash(rawRefreshToken))
             .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
     if (!currentSession.isAvailableAt(now)) {
       if (currentSession.getRevokedAt() != null) {
@@ -212,7 +215,7 @@ public class UserService {
 
   @Transactional
   public void logout(String rawRefreshToken) {
-    refreshSessionRepository.findByTokenHash(hashToken(rawRefreshToken))
+    refreshSessionRepository.findByTokenHash(tokenHasher.hash(rawRefreshToken))
             .ifPresent(session -> session.revoke(Instant.now()));
   }
 
@@ -225,21 +228,21 @@ public class UserService {
 
   @Transactional
   public void requestPasswordReset(String email) {
-    findVerifiedEmailIdentifier(normalizeEmail(email)).ifPresent(identifier -> {
+    findVerifiedEmailIdentifier(emailNormalizationService.normalize(email)).ifPresent(identifier -> {
       User user = userRepo.findById(identifier.getUserId())
               .orElseThrow(() -> new IllegalStateException("User not found for password reset identifier"));
       Instant now = Instant.now();
       Instant expiresAt = now.plus(PASSWORD_RESET_TTL);
-      String rawResetToken = generateOpaqueToken();
+      String rawResetToken = tokenGenerator.generate();
       passwordResetTokenRepository.save(
-              PasswordResetToken.issue(user.getId(), hashToken(rawResetToken), expiresAt));
+              PasswordResetToken.issue(user.getId(), tokenHasher.hash(rawResetToken), expiresAt));
       outboxEventRepository.save(OutboxEvent.create(
               "identity.user.password-reset-requested.v1",
               1,
               user.getId(),
               "identity-service",
               now,
-              writePayload(new EventEnvelope<>(
+              eventSerializer.writePayload(new EventEnvelope<>(
                       UUID.randomUUID(),
                       "identity.user.password-reset-requested.v1",
                       1,
@@ -258,7 +261,7 @@ public class UserService {
   @Transactional
   public void resetPassword(String rawToken, String newPassword) {
     Instant now = Instant.now();
-    PasswordResetToken token = passwordResetTokenRepository.findByTokenHash(hashToken(rawToken))
+    PasswordResetToken token = passwordResetTokenRepository.findByTokenHash(tokenHasher.hash(rawToken))
             .orElseThrow(() -> new IllegalArgumentException("Invalid password reset token"));
     if (!token.isAvailableAt(now)) {
       throw new IllegalStateException("Password reset token is no longer valid");
@@ -273,11 +276,11 @@ public class UserService {
 
   private LoginResult issueLoginResult(User user, UUID accountId, Instant now) {
 
-    String rawRefreshToken = generateOpaqueToken();
+    String rawRefreshToken = tokenGenerator.generate();
     RefreshSession refreshSession = refreshSessionRepository.save(
             RefreshSession.issue(
                     user.getId(),
-                    hashToken(rawRefreshToken),
+                    tokenHasher.hash(rawRefreshToken),
                     now.plusSeconds(jwtService.getRefreshTokenTtlSeconds()),
                     accountId));
 
@@ -362,7 +365,7 @@ public class UserService {
   public UserEmailResponse addEmail(UUID userId, String email) {
     User user = userRepo.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(userId));
-    String normalizedEmail = normalizeEmail(email);
+    String normalizedEmail = emailNormalizationService.normalize(email);
     if (userIdentifierRepository.existsByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)) {
       throw new IllegalArgumentException("Email already exists");
     }
@@ -423,10 +426,6 @@ public class UserService {
             rbac.permissions());
   }
 
-  private String normalizeEmail(String email){
-    return email.trim().toLowerCase(Locale.ROOT);
-  }
-
   private String normalizeUsername(String username) {
     String normalized = username == null ? null : username.trim().toLowerCase(Locale.ROOT);
     if (normalized == null || normalized.isBlank()) {
@@ -476,16 +475,16 @@ public class UserService {
 
   private void issueVerification(UserIdentifier identifier, User user, Instant now) {
     Instant expiresAt = now.plus(EMAIL_VERIFICATION_TTL);
-    String rawVerificationToken = generateOpaqueToken();
+    String rawVerificationToken = tokenGenerator.generate();
     emailVerificationTokenRepository.save(
-            EmailVerificationToken.issue(user.getId(), identifier.getId(), hashToken(rawVerificationToken), expiresAt));
+            EmailVerificationToken.issue(user.getId(), identifier.getId(), tokenHasher.hash(rawVerificationToken), expiresAt));
     outboxEventRepository.save(OutboxEvent.create(
             "identity.user.verification-requested.v1",
             1,
             user.getId(),
             "identity-service",
             now,
-            writePayload(new EventEnvelope<>(
+            eventSerializer.writePayload(new EventEnvelope<>(
                     UUID.randomUUID(),
                     "identity.user.verification-requested.v1",
                     1,
@@ -498,30 +497,6 @@ public class UserService {
                             user.getFullName(),
                             rawVerificationToken,
                             expiresAt)))));
-  }
-
-  private String generateOpaqueToken() {
-    byte[] bytes = new byte[32];
-    SECURE_RANDOM.nextBytes(bytes);
-    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-  }
-
-  private String hashToken(String rawToken) {
-    try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      return Base64.getUrlEncoder().withoutPadding()
-              .encodeToString(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
-    } catch (NoSuchAlgorithmException exception) {
-      throw new IllegalStateException("SHA-256 not available", exception);
-    }
-  }
-
-  private String writePayload(EventEnvelope<?> envelope) {
-    try {
-      return objectMapper.writeValueAsString(envelope);
-    } catch (JsonProcessingException exception) {
-      throw new IllegalStateException("Failed to serialize identity event payload", exception);
-    }
   }
 
   public record LoginResult(AuthTokenResponse response, String refreshToken) {
