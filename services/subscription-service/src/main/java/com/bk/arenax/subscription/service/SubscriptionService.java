@@ -1,6 +1,6 @@
 package com.bk.arenax.subscription.service;
 
-import com.bk.arenax.subscription.controller.dto.CurrentSubscriptionResponse;
+import com.bk.arenax.subscription.dto.response.CurrentSubscriptionResponse;
 import com.bk.arenax.subscription.domain.entity.OutboxEvent;
 import com.bk.arenax.subscription.domain.entity.Subscription;
 import com.bk.arenax.subscription.domain.enums.SubscriptionPlan;

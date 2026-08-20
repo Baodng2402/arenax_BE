@@ -1,8 +1,8 @@
 package com.bk.arenax.tenant.controller;
 
-import com.bk.arenax.tenant.controller.dto.AccountSummaryResponse;
-import com.bk.arenax.tenant.controller.dto.CreateWorkspaceRequest;
-import com.bk.arenax.tenant.controller.dto.MembershipResponse;
+import com.bk.arenax.tenant.dto.response.AccountSummaryResponse;
+import com.bk.arenax.tenant.dto.request.CreateWorkspaceRequest;
+import com.bk.arenax.tenant.dto.response.MembershipResponse;
 import com.bk.arenax.tenant.infrastructure.security.CurrentUserResolver;
 import com.bk.arenax.tenant.infrastructure.security.GatewayUserPrincipal;
 import com.bk.arenax.tenant.service.AccountService;

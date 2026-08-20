@@ -1,7 +1,7 @@
 package com.bk.arenax.subscription.controller;
 
-import com.bk.arenax.subscription.controller.dto.ChangeSubscriptionPlanRequest;
-import com.bk.arenax.subscription.controller.dto.CurrentSubscriptionResponse;
+import com.bk.arenax.subscription.dto.request.ChangeSubscriptionPlanRequest;
+import com.bk.arenax.subscription.dto.response.CurrentSubscriptionResponse;
 import com.bk.arenax.subscription.infrastructure.security.GatewayUserPrincipal;
 import com.bk.arenax.subscription.service.SubscriptionService;
 import jakarta.validation.Valid;

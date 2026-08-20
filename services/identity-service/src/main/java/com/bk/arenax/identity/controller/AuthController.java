@@ -1,12 +1,12 @@
 package com.bk.arenax.identity.controller;
 
-import com.bk.arenax.identity.controller.dto.AuthTokenResponse;
-import com.bk.arenax.identity.controller.dto.LoginRequest;
-import com.bk.arenax.identity.controller.dto.PasswordResetRequest;
-import com.bk.arenax.identity.controller.dto.RegisterRequest;
-import com.bk.arenax.identity.controller.dto.RegisterResponse;
-import com.bk.arenax.identity.controller.dto.ResetPasswordRequest;
-import com.bk.arenax.identity.controller.dto.VerifyEmailRequest;
+import com.bk.arenax.identity.dto.response.AuthTokenResponse;
+import com.bk.arenax.identity.dto.request.LoginRequest;
+import com.bk.arenax.identity.dto.request.PasswordResetRequest;
+import com.bk.arenax.identity.dto.request.RegisterRequest;
+import com.bk.arenax.identity.dto.response.RegisterResponse;
+import com.bk.arenax.identity.dto.request.ResetPasswordRequest;
+import com.bk.arenax.identity.dto.request.VerifyEmailRequest;
 import com.bk.arenax.identity.infrastructure.security.CookieProperties;
 import com.bk.arenax.identity.service.UserService;
 import jakarta.validation.Valid;

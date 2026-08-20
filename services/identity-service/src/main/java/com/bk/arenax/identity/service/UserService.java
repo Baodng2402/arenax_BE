@@ -1,9 +1,9 @@
 package com.bk.arenax.identity.service;
 
-import com.bk.arenax.identity.controller.dto.AuthTokenResponse;
-import com.bk.arenax.identity.controller.dto.UserEmailResponse;
-import com.bk.arenax.identity.controller.dto.UserProfileResponse;
-import com.bk.arenax.identity.controller.dto.UsernameResponse;
+import com.bk.arenax.identity.dto.response.AuthTokenResponse;
+import com.bk.arenax.identity.dto.response.UserEmailResponse;
+import com.bk.arenax.identity.dto.response.UserProfileResponse;
+import com.bk.arenax.identity.dto.response.UsernameResponse;
 import com.bk.arenax.identity.domain.EmailVerificationToken;
 import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.PasswordResetToken;

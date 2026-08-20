@@ -1,11 +1,11 @@
 package com.bk.arenax.identity.controller;
 
-import com.bk.arenax.identity.controller.dto.AddEmailRequest;
-import com.bk.arenax.identity.controller.dto.UpdateUsernameRequest;
-import com.bk.arenax.identity.controller.dto.UserEmailResponse;
-import com.bk.arenax.identity.controller.dto.UpdateProfileRequest;
-import com.bk.arenax.identity.controller.dto.UserProfileResponse;
-import com.bk.arenax.identity.controller.dto.UsernameResponse;
+import com.bk.arenax.identity.dto.request.AddEmailRequest;
+import com.bk.arenax.identity.dto.request.UpdateUsernameRequest;
+import com.bk.arenax.identity.dto.response.UserEmailResponse;
+import com.bk.arenax.identity.dto.request.UpdateProfileRequest;
+import com.bk.arenax.identity.dto.response.UserProfileResponse;
+import com.bk.arenax.identity.dto.response.UsernameResponse;
 import com.bk.arenax.identity.infrastructure.security.CurrentUserResolver;
 import com.bk.arenax.identity.infrastructure.security.GatewayUserPrincipal;
 import com.bk.arenax.identity.service.UserService;
