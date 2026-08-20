@@ -8,7 +8,8 @@ import com.bk.arenax.identity.dto.response.UserProfileResponse;
 import com.bk.arenax.identity.dto.response.UsernameResponse;
 import com.bk.arenax.identity.infrastructure.security.CurrentUserResolver;
 import com.bk.arenax.identity.infrastructure.security.GatewayUserPrincipal;
-import com.bk.arenax.identity.service.UserService;
+import com.bk.arenax.identity.service.ProfileService;
+import com.bk.arenax.identity.service.UserEmailService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -31,40 +32,41 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    private final ProfileService profileService;
+    private final UserEmailService userEmailService;
     private final CurrentUserResolver currentUserResolver;
 
     @GetMapping("/me")
     public UserProfileResponse me(Authentication authentication) {
         GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
-        return userService.getProfile(principal.userId(), principal.accountId());
+        return profileService.getProfile(principal.userId(), principal.accountId());
     }
 
     @PatchMapping("/me")
     public UserProfileResponse updateMe(Authentication authentication,
                                         @Valid @RequestBody UpdateProfileRequest request) {
         GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
-        return userService.updateProfile(principal.userId(), request.fullName(), request.avatarUrl(), principal.accountId());
+        return profileService.updateProfile(principal.userId(), request.fullName(), request.avatarUrl(), principal.accountId());
     }
 
     @PutMapping("/me/username")
     public UsernameResponse updateUsername(Authentication authentication,
                                            @Valid @RequestBody UpdateUsernameRequest request) {
         GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
-        return userService.updateUsername(principal.userId(), request.username());
+        return userEmailService.updateUsername(principal.userId(), request.username());
     }
 
     @DeleteMapping("/me/username")
     public ResponseEntity<Void> deleteUsername(Authentication authentication) {
         GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
-        userService.clearUsername(principal.userId());
+        userEmailService.clearUsername(principal.userId());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me/emails")
     public List<UserEmailResponse> myEmails(Authentication authentication) {
         GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
-        return userService.listEmails(principal.userId());
+        return userEmailService.listEmails(principal.userId());
     }
 
     @PostMapping("/me/emails")
@@ -72,21 +74,22 @@ public class UserController {
                                                       @Valid @RequestBody AddEmailRequest request) {
         GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(userService.addEmail(principal.userId(), request.email()));
+                .body(userEmailService.addEmail(principal.userId(), request.email()));
     }
 
     @PatchMapping("/me/emails/{emailId}/primary")
     public UserProfileResponse setPrimaryEmail(Authentication authentication,
                                                @PathVariable UUID emailId) {
         GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
-        return userService.setPrimaryEmail(principal.userId(), emailId, principal.accountId());
+        userEmailService.setPrimaryEmail(principal.userId(), emailId);
+        return profileService.getProfile(principal.userId(), principal.accountId());
     }
 
     @DeleteMapping("/me/emails/{emailId}")
     public ResponseEntity<Void> deleteEmail(Authentication authentication,
                                             @PathVariable UUID emailId) {
         GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
-        userService.removeEmail(principal.userId(), emailId);
+        userEmailService.removeEmail(principal.userId(), emailId);
         return ResponseEntity.noContent().build();
     }
 }
