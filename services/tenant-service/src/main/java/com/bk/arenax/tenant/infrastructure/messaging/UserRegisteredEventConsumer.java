@@ -1,6 +1,6 @@
 package com.bk.arenax.tenant.infrastructure.messaging;
 
-import com.bk.arenax.tenant.messaging.EventEnvelope;
+import com.bk.arenax.messaging.EventEnvelope;
 import com.bk.arenax.tenant.messaging.UserRegisteredPayload;
 import com.bk.arenax.tenant.service.UserRegistrationHandler;
 import com.fasterxml.jackson.core.JsonProcessingException;

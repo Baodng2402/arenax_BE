@@ -2,7 +2,7 @@ package com.bk.arenax.ranking.service;
 
 import com.bk.arenax.ranking.domain.entity.PlayerRanking;
 import com.bk.arenax.ranking.domain.entity.RankingHistory;
-import com.bk.arenax.ranking.messaging.EventEnvelope;
+import com.bk.arenax.messaging.EventEnvelope;
 import com.bk.arenax.ranking.messaging.MatchCompletedPayload;
 import com.bk.arenax.ranking.repository.PlayerRankingRepository;
 import com.bk.arenax.ranking.repository.RankingHistoryRepository;

@@ -1,4 +1,4 @@
-package com.bk.arenax.subscription.messaging;
+package com.bk.arenax.messaging;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -10,4 +10,5 @@ public record EventEnvelope<T>(
         Instant occurredAt,
         UUID correlationId,
         String producer,
-        T payload) {}
+        T payload) {
+}

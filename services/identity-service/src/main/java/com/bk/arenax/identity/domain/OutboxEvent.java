@@ -1,5 +1,6 @@
 package com.bk.arenax.identity.domain;
 
+import com.bk.arenax.messaging.PendingOutboxEvent;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -19,7 +20,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "outbox_events")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class OutboxEvent {
+public class OutboxEvent implements PendingOutboxEvent {
 
     @Id
     @Column(nullable = false, updatable = false)

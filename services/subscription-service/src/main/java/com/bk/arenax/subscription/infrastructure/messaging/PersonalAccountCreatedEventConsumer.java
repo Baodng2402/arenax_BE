@@ -1,6 +1,6 @@
 package com.bk.arenax.subscription.infrastructure.messaging;
 
-import com.bk.arenax.subscription.messaging.EventEnvelope;
+import com.bk.arenax.messaging.EventEnvelope;
 import com.bk.arenax.subscription.messaging.PersonalAccountCreatedPayload;
 import com.bk.arenax.subscription.service.PersonalAccountCreatedHandler;
 import com.fasterxml.jackson.core.JsonProcessingException;

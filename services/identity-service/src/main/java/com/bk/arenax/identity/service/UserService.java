@@ -12,7 +12,7 @@ import com.bk.arenax.identity.domain.User;
 import com.bk.arenax.identity.domain.UserIdentifier;
 import com.bk.arenax.identity.domain.UserIdentifierType;
 import com.bk.arenax.identity.domain.UserStatus;
-import com.bk.arenax.identity.messaging.EventEnvelope;
+import com.bk.arenax.messaging.EventEnvelope;
 import com.bk.arenax.identity.messaging.UserPasswordResetRequestedPayload;
 import com.bk.arenax.identity.messaging.UserRegisteredPayload;
 import com.bk.arenax.identity.messaging.UserVerificationRequestedPayload;
