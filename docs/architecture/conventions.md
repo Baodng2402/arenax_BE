@@ -229,6 +229,13 @@ Không được chia sẻ:
 
 Nếu phân vân giữa reuse và duplicate, ưu tiên duplicate nhỏ để giữ boundary rõ.
 
+**`libs/` vs `contracts/` — để gì ở đâu:**
+
+- `libs/` = **shared implementation** — code thật sự được import vào service để chạy (vd `libs/messaging-foundation`: `EventEnvelope` + outbox relay contract).
+- `contracts/` = **shared agreement** — spec mô tả giao tiếp giữa services (AsyncAPI, OpenAPI, security docs), không phải module runtime.
+- Chỉ đưa vào `libs/` thứ services cần import vào code. Thứ chỉ mô tả API/event/schema thì đưa vào `contracts/`.
+- Danh sách "Không được chia sẻ" ở trên (JPA entities, repositories, business services, event payload classes, DTOs, migrations, enum nghiệp vụ) áp dụng cho cả `libs/` lẫn `contracts/`.
+
 ### 18. Definition Of Done For A New Slice
 
 Một vertical slice chỉ được xem là xong khi đủ tất cả điều kiện sau:
