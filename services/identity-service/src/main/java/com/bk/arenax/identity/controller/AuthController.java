@@ -9,8 +9,8 @@ import com.bk.arenax.identity.dto.request.ResetPasswordRequest;
 import com.bk.arenax.identity.dto.request.VerifyEmailRequest;
 import com.bk.arenax.identity.infrastructure.security.CookieProperties;
 import com.bk.arenax.identity.service.AuthenticationService;
+import com.bk.arenax.identity.service.PasswordResetService;
 import com.bk.arenax.identity.service.RegistrationService;
-import com.bk.arenax.identity.service.UserService;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class AuthController {
 
     private final AuthenticationService authenticationService;
     private final RegistrationService registrationService;
-    private final UserService userService;
+    private final PasswordResetService passwordResetService;
     private final CookieProperties cookieProperties;
 
     @PostMapping("/register")
@@ -78,13 +78,13 @@ public class AuthController {
 
     @PostMapping("/request-password-reset")
     public ResponseEntity<Void> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
-        userService.requestPasswordReset(request.email());
+        passwordResetService.requestPasswordReset(request.email());
         return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        userService.resetPassword(request.token(), request.newPassword());
+        passwordResetService.resetPassword(request.token(), request.newPassword());
         return clearRefreshCookie();
     }
 
