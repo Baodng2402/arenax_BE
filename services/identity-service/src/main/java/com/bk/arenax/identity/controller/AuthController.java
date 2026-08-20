@@ -8,6 +8,7 @@ import com.bk.arenax.identity.dto.response.RegisterResponse;
 import com.bk.arenax.identity.dto.request.ResetPasswordRequest;
 import com.bk.arenax.identity.dto.request.VerifyEmailRequest;
 import com.bk.arenax.identity.infrastructure.security.CookieProperties;
+import com.bk.arenax.identity.service.RegistrationService;
 import com.bk.arenax.identity.service.UserService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -28,18 +29,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UserService userService;
+    private final RegistrationService registrationService;
     private final CookieProperties cookieProperties;
 
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
-        var user = userService.register(request.email(), request.password(), request.fullName());
+        var user = registrationService.register(request.email(), request.password(), request.fullName());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new RegisterResponse(user.getId(), user.getEmail(), user.getStatus().name()));
     }
 
     @PostMapping("/verify-email")
     public ResponseEntity<Void> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
-        userService.verifyEmail(request.token());
+        registrationService.verifyEmail(request.token());
         return ResponseEntity.noContent().build();
     }
 
