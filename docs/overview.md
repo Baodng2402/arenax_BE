@@ -38,7 +38,7 @@ arenax-be/
 │   ├── onboarding/              # Reference: system tour, core flows, glossary...
 │   ├── operations/              # Reference: security mesh
 │   ├── services/                # Reference: chi tiết từng service
-│   └── superpowers/             # Archive: plan/spec nội bộ (không phải product docs)
+│   └── (không còn planning artifacts — đã dọn)
 ├── gradle/libs.versions.toml    # Version catalog
 ├── libs/
 │   └── messaging-foundation/    # EventEnvelope + outbox relay contract (dùng chung)
@@ -120,7 +120,7 @@ Helpers dùng chung trong `service/support/`: `IdentityTokenHasher`, `IdentityTo
    ```bash
    ./gradlew :services:identity-service:bootRun --args='--spring.profiles.active=local'
    ```
-   Persistence services **bắt buộc** profile `local` (nếu không: `Failed to configure a DataSource: 'url' attribute is not specified`). Có sẵn `bin/run-service` và `bin/run-local-stack`.
+   Persistence services **bắt buộc** profile `local` (nếu không: `Failed to configure a DataSource: 'url' attribute is not specified`).
 4. Gateway health check: `localhost:8080/actuator/health`; Eureka dashboard: `localhost:8761`.
 
 ## 9. Docs map
@@ -133,7 +133,6 @@ Helpers dùng chung trong `service/support/`: `IdentityTokenHasher`, `IdentityTo
 | Reference — services | `docs/services/identity.md` (có internal structure), `tenant.md`, `subscription.md`, `competition.md`, `ranking.md`, `api-gateway.md` |
 | Reference — onboarding | `docs/onboarding/01-system-tour.md` → `02-core-flows.md` → `03-domain-glossary.md` → `04-data-and-integration-map.md` |
 | Reference — operations | `docs/operations/service-mesh-security.md` |
-| Archive (planning nội bộ, không phải product docs) | `docs/superpowers/**`, `.opencode/plans/**` |
 
 ## 10. Current status & gaps
 
