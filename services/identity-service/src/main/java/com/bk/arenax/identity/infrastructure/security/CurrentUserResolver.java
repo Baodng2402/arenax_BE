@@ -1,5 +1,7 @@
 package com.bk.arenax.identity.infrastructure.security;
 
+import com.bk.arenax.security.trustedgateway.TrustedGatewayAuthentication;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayPrincipal;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -11,14 +13,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class CurrentUserResolver {
 
-    public GatewayUserPrincipal resolve(Authentication authentication) {
-        if (authentication instanceof GatewayTrustedAuthentication gatewayAuthentication
-                && gatewayAuthentication.getPrincipal() instanceof GatewayUserPrincipal principal) {
+    public TrustedGatewayPrincipal resolve(Authentication authentication) {
+        if (authentication instanceof TrustedGatewayAuthentication gatewayAuthentication
+                && gatewayAuthentication.getPrincipal() instanceof TrustedGatewayPrincipal principal) {
             return principal;
         }
         if (authentication instanceof JwtAuthenticationToken jwtAuthenticationToken) {
             Jwt token = jwtAuthenticationToken.getToken();
-            return new GatewayUserPrincipal(
+            return new TrustedGatewayPrincipal(
                     UUID.fromString(token.getSubject()),
                     nullableUuid(token.getClaimAsString("sid")),
                     nullableUuid(token.getClaimAsString("account_id")),

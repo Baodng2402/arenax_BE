@@ -1,6 +1,8 @@
 package com.bk.arenax.identity.infrastructure.security;
 
 import com.bk.arenax.identity.infrastructure.jwt.JwtProperties;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayAuthenticationFilter;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayFilterMode;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -93,13 +95,18 @@ public class SecurityConfiguration {
                                     "Required audience is missing",
                                     null
                             )
-            );
+                    );
     decoder.setJwtValidator(
             new DelegatingOAuth2TokenValidator<>(
             issuerValidator,
             audienceValidator
     ));
     return decoder;
+  }
+
+  @Bean
+  TrustedGatewayAuthenticationFilter trustedGatewayAuthenticationFilter() {
+    return new TrustedGatewayAuthenticationFilter(TrustedGatewayFilterMode.OPTIONAL_UNLESS_AUTHORIZATION_PRESENT);
   }
 
   @Bean
