@@ -97,7 +97,7 @@ Cho phép client có một entrypoint HTTP chung.
   - `/api/v1/accounts/**` -> Tenant (protected)
   - `/api/v1/subscriptions/**` -> Subscription (protected)
 - Gateway thay JWT bằng trusted headers (`X-Arenax-User-Id`, `X-Arenax-Session-Id`, `X-Arenax-Account-Id`, `X-Arenax-Roles`, `X-Arenax-Permissions`) trước khi forward, và strip token cũ.
-- Các route cho competition/ranking hiện chưa được bật qua gateway.
+- Route competition (`/api/v1/sports/**`, `/api/v1/matches/**`) đã bật qua gateway. Route ranking chưa bật.
 
 ### Điều quan trọng cần nhớ
 

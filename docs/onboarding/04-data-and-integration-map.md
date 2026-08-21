@@ -120,7 +120,7 @@ Current public slices:
 - Ranking:
   - `GET /api/v1/rankings/users/{userId}`
 
-Gateway routes đang được bật: `/api/v1/auth/**`, `/api/v1/users/**` -> Identity; `/api/v1/accounts/**` -> Tenant; `/api/v1/subscriptions/**` -> Subscription. Routes cho competition/ranking chưa được bật.
+Gateway routes đang được bật: `/api/v1/auth/**`, `/api/v1/users/**` -> Identity; `/api/v1/accounts/**` -> Tenant; `/api/v1/subscriptions/**` -> Subscription; `/api/v1/sports/**`, `/api/v1/matches/**` -> Competition. Route ranking chưa được bật.
 
 Gateway routes thêm một entrypoint chung, nhưng service ownership vẫn nằm ở module phía sau.
 

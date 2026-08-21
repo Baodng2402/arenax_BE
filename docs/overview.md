@@ -38,7 +38,6 @@ arenax-be/
 │   ├── onboarding/              # Reference: system tour, core flows, glossary...
 │   ├── operations/              # Reference: security mesh
 │   ├── services/                # Reference: chi tiết từng service
-│   └── (không còn planning artifacts — đã dọn)
 ├── gradle/libs.versions.toml    # Version catalog
 ├── libs/
 │   └── messaging-foundation/    # EventEnvelope + outbox relay contract (dùng chung)
@@ -69,7 +68,7 @@ arenax-be/
 - **Outbox pattern**: service ghi `outbox_events` trong cùng transaction nghiệp vụ → relay (`@Scheduled`, poll 5s) publish lên exchange `arenax.events`, routing key = `eventType`. Consumer dùng `@RabbitListener` trên queue riêng của mình.
 - **Event envelope** (JSON): `eventId` (UUID, unique toàn cục, để idempotency), `eventType`, `eventVersion`, `occurredAt`, `correlationId` (business key: userId/accountId/matchId), `producer`, `payload`.
 - **Gateway trust boundary**: gateway là nơi duy nhất verify JWT của end-user. Với route đã authenticate, gateway đổi JWT thành trusted headers: `X-Arenax-User-Id`, `X-Arenax-Session-Id`, `X-Arenax-Account-Id`, `X-Arenax-Roles`, `X-Arenax-Permissions` (đồng thời strip header `Authorization` cũ).
-- **Route gateway hiện bật**: `/api/v1/auth/**` + `/users/**` → identity, `/accounts/**` → tenant, `/subscriptions/**` → subscription. Route competition/ranking **chưa bật**.
+- **Route gateway hiện bật**: `/api/v1/auth/**` + `/users/**` → identity, `/accounts/**` → tenant, `/subscriptions/**` → subscription, `/api/v1/sports/**` + `/api/v1/matches/**` → competition. Route ranking **chưa bật**.
 - **Chỉ identity cấp JWT**. Email không phải identity root — identity dùng `user_identifiers` (kiểu EMAIL, một primary, verified bắt buộc để login/reset).
 
 ## 6. Core flows
