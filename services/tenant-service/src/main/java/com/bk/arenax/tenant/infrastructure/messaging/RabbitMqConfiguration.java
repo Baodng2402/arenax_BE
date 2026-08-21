@@ -1,5 +1,6 @@
 package com.bk.arenax.tenant.infrastructure.messaging;
 
+import com.bk.arenax.messaging.autoconfigure.ArenaxEventsExchangeAutoConfiguration;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
@@ -10,13 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMqConfiguration {
 
-    public static final String EXCHANGE = "arenax.events";
     public static final String ONBOARDING_QUEUE = "arenax.tenant.onboarding";
-
-    @Bean
-    TopicExchange arenaxEventsExchange() {
-        return new TopicExchange(EXCHANGE, true, false);
-    }
 
     @Bean
     Queue onboardingQueue() {

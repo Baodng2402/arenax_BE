@@ -1,0 +1,2 @@
+com.bk.arenax.messaging.autoconfigure.OutboxRelayAutoConfiguration
+com.bk.arenax.messaging.autoconfigure.ArenaxEventsExchangeAutoConfiguration
