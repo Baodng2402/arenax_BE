@@ -79,11 +79,15 @@ class UserControllerIntegrationTests {
                 .andExpect(jsonPath("$.userId").value(userId.toString()))
                 .andExpect(jsonPath("$.username").doesNotExist())
                 .andExpect(jsonPath("$.primaryEmail").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.emails[0].id").exists())
                 .andExpect(jsonPath("$.emails[0].email").value("player1@arenax.dev"))
                 .andExpect(jsonPath("$.emails[0].primary").value(true))
                 .andExpect(jsonPath("$.emails[0].verified").value(true))
+                .andExpect(jsonPath("$.emails[0].verifiedAt").exists())
                 .andExpect(jsonPath("$.fullName").value("Player One"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.avatarUrl").doesNotExist())
+                .andExpect(jsonPath("$.emailVerifiedAt").exists())
                 .andExpect(jsonPath("$.roles").isArray())
                 .andExpect(jsonPath("$.permissions").isArray());
     }
@@ -124,9 +128,19 @@ class UserControllerIntegrationTests {
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId.toString()))
+                .andExpect(jsonPath("$.username").doesNotExist())
                 .andExpect(jsonPath("$.primaryEmail").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.emails[0].id").exists())
+                .andExpect(jsonPath("$.emails[0].email").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.emails[0].primary").value(true))
+                .andExpect(jsonPath("$.emails[0].verified").value(true))
+                .andExpect(jsonPath("$.emails[0].verifiedAt").exists())
                 .andExpect(jsonPath("$.fullName").value("Player One"))
-                .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.avatarUrl").doesNotExist())
+                .andExpect(jsonPath("$.emailVerifiedAt").exists())
+                .andExpect(jsonPath("$.roles").isArray())
+                .andExpect(jsonPath("$.permissions").isArray());
     }
 
     @Test
@@ -365,8 +379,15 @@ class UserControllerIntegrationTests {
                         .header("X-Arenax-User-Id", userId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.primaryEmail").value("second@arenax.dev"))
+                .andExpect(jsonPath("$.emails[0].id").exists())
                 .andExpect(jsonPath("$.emails[0].email").value("second@arenax.dev"))
-                .andExpect(jsonPath("$.emails[0].primary").value(true));
+                .andExpect(jsonPath("$.emails[0].primary").value(true))
+                .andExpect(jsonPath("$.emails[0].verified").value(true))
+                .andExpect(jsonPath("$.emails[0].verifiedAt").exists())
+                .andExpect(jsonPath("$.emails[1].email").value("player1@arenax.dev"))
+                .andExpect(jsonPath("$.emails[1].primary").value(false))
+                .andExpect(jsonPath("$.emails[1].verified").value(true))
+                .andExpect(jsonPath("$.emails[1].verifiedAt").exists());
 
         User user = userRepository.findById(userId).orElseThrow();
         assertThat(user.getEmail()).isEqualTo("second@arenax.dev");
