@@ -15,6 +15,7 @@ import com.bk.arenax.identity.service.support.EmailNormalizationService;
 import com.bk.arenax.identity.service.support.IdentityTokenGenerator;
 import com.bk.arenax.identity.service.support.IdentityTokenHasher;
 import com.bk.arenax.identity.service.support.UserEmailResponseMapper;
+import com.bk.arenax.identity.service.support.UserProfileResponseAssembler;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -44,6 +45,7 @@ public class AuthenticationService {
   private final IdentityTokenGenerator tokenGenerator;
   private final EmailNormalizationService emailNormalizationService;
   private final UserEmailResponseMapper emailResponseMapper;
+  private final UserProfileResponseAssembler profileAssembler;
 
   @Transactional(noRollbackFor = {InvalidCredentialsException.class, AccountLockedException.class})
   public LoginResult login(String email, String password, UUID accountId) {
@@ -143,25 +145,15 @@ public class AuthenticationService {
             rbac.roles(),
             rbac.permissions());
 
-return new LoginResult(
+    UserProfileResponse profile = profileAssembler.assemble(user, accountId);
+
+    return new LoginResult(
             new AuthTokenResponse(
-                     accessToken,
-                     "Bearer",
-                     jwtService.getAccessTokenTtlSeconds(),
-                      new UserProfileResponse(
-                              user.getId(),
-                              user.getUsername(),
-                              requirePrimaryEmail(user.getId()).getNormalizedValue(),
-                              emailResponseMapper.toResponses(
-                                      userIdentifierRepository.findAllByUserIdAndTypeOrderByPrimaryDescCreatedAtAsc(user.getId(), UserIdentifierType.EMAIL)),
-                              user.getFullName(),
-                              user.getStatus().name(),
-                             user.getAvatarUrl(),
-                            user.getEmailVerifiedAt(),
-                            accountId,
-                             rbac.roles(),
-                             rbac.permissions())),
-          rawRefreshToken);
+                    accessToken,
+                    "Bearer",
+                    jwtService.getAccessTokenTtlSeconds(),
+                    profile),
+            rawRefreshToken);
   }
 
   private java.util.Optional<User> findUserByVerifiedEmail(String normalizedEmail) {
@@ -172,11 +164,6 @@ return new LoginResult(
   private java.util.Optional<UserIdentifier> findVerifiedEmailIdentifier(String normalizedEmail) {
     return userIdentifierRepository.findByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)
             .filter(UserIdentifier::isVerified);
-  }
-
-  private UserIdentifier requirePrimaryEmail(UUID userId) {
-    return userIdentifierRepository.findByUserIdAndTypeAndPrimaryTrue(userId, UserIdentifierType.EMAIL)
-            .orElseThrow(() -> new IllegalStateException("Primary email not found for user"));
   }
 
   public record LoginResult(AuthTokenResponse response, String refreshToken) {
