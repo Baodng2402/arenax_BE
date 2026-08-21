@@ -1,3 +1,4 @@
+# Test messaging config: consumer only -> disable listener
 spring:
   rabbitmq:
     listener:

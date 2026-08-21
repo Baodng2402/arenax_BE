@@ -35,7 +35,7 @@ Khi một user mới đăng ký:
 
 - User vừa register (`PENDING`, chưa verify email) bị từ chối login với `401`.
 - `access-service` không tồn tại; RBAC (roles, permissions, role assignments) nằm trong `identity-service` qua migration `V6__add_rbac_core.sql`. Không có handler nào tự gán role mặc định khi onboarding hiện tại.
-- Toàn bộ chuỗi event trên đã được nối runtime: mỗi service producer có outbox relay (`@Scheduled` poll các event chưa `published_at`, publish lên topic exchange `arenax.events` với routing key = event type) và mỗi consumer có `@RabbitListener` trên queue riêng (tenant/subscription/ranking). RabbitMQ nằm trong `compose.yaml`; test disabling qua `arenax.messaging.relay.enabled=false` và `spring.rabbitmq.listener.simple.auto-startup=false`.
+- Toàn bộ chuỗi event trên đã được nối runtime: mỗi service producer có outbox relay (`@Scheduled` poll các event chưa `published_at`, publish lên topic exchange `arenax.events` với routing key = event type) và mỗi consumer có `@RabbitListener` trên queue riêng (tenant/subscription/ranking). RabbitMQ nằm trong `compose.yaml`; test disabling qua `arenax.messaging.relay.enabled=false` (producer services) và `spring.rabbitmq.listener.simple.auto-startup=false` (consumer services). Xem [Testing Guide](../development/testing.md#test-messaging-runtime-convention) để biết convention chi tiết.
 
 ## Flow 2: Login Và Token Issuance
 

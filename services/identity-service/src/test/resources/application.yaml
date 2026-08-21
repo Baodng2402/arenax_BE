@@ -1,3 +1,5 @@
+# Test messaging config: producer only -> disable relay
+# JWT test configuration
 arenax:
   messaging:
     relay:
