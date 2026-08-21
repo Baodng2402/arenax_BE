@@ -1,5 +1,7 @@
 package com.bk.arenax.subscription.infrastructure.security;
 
+import com.bk.arenax.security.trustedgateway.TrustedGatewayAuthenticationFilter;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayFilterMode;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -15,18 +17,19 @@ import java.util.List;
 @Configuration
 public class SecurityConfiguration implements WebMvcConfigurer {
 
-    private final TrustedGatewayAuthenticationFilter trustedGatewayAuthenticationFilter;
     private final CurrentUserResolver currentUserResolver;
 
-    public SecurityConfiguration(
-            TrustedGatewayAuthenticationFilter trustedGatewayAuthenticationFilter,
-            CurrentUserResolver currentUserResolver) {
-        this.trustedGatewayAuthenticationFilter = trustedGatewayAuthenticationFilter;
+    public SecurityConfiguration(CurrentUserResolver currentUserResolver) {
         this.currentUserResolver = currentUserResolver;
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    TrustedGatewayAuthenticationFilter trustedGatewayAuthenticationFilter() {
+        return new TrustedGatewayAuthenticationFilter(TrustedGatewayFilterMode.REQUIRED);
+    }
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http, TrustedGatewayAuthenticationFilter trustedGatewayAuthenticationFilter) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

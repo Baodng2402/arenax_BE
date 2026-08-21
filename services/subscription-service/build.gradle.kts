@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":libs:messaging-foundation"))
+    implementation(project(":libs:trusted-gateway-security"))
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.validation)

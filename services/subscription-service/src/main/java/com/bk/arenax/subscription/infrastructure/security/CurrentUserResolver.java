@@ -1,5 +1,7 @@
 package com.bk.arenax.subscription.infrastructure.security;
 
+import com.bk.arenax.security.trustedgateway.TrustedGatewayAuthentication;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayPrincipal;
 import org.springframework.core.MethodParameter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,7 +16,7 @@ public class CurrentUserResolver implements HandlerMethodArgumentResolver {
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.getParameterType().equals(GatewayUserPrincipal.class);
+        return parameter.getParameterType().equals(TrustedGatewayPrincipal.class);
     }
 
     @Override
@@ -24,7 +26,7 @@ public class CurrentUserResolver implements HandlerMethodArgumentResolver {
             NativeWebRequest webRequest,
             WebDataBinderFactory binderFactory) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication instanceof GatewayTrustedAuthentication trustedAuthentication) {
+        if (authentication instanceof TrustedGatewayAuthentication trustedAuthentication) {
             return trustedAuthentication.getPrincipal();
         }
         return null;
