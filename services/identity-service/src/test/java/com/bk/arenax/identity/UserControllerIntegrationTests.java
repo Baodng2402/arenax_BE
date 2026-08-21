@@ -10,12 +10,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.bk.arenax.identity.domain.OutboxEvent;
+import com.bk.arenax.identity.domain.Role;
+import com.bk.arenax.identity.domain.RoleAssignment;
 import com.bk.arenax.identity.domain.User;
 import com.bk.arenax.identity.domain.UserIdentifier;
 import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
+import com.bk.arenax.identity.repository.RoleAssignmentRepository;
+import com.bk.arenax.identity.repository.RoleRepository;
 import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -59,6 +63,12 @@ class UserControllerIntegrationTests {
     @Autowired
     private UserIdentifierRepository userIdentifierRepository;
 
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private RoleAssignmentRepository roleAssignmentRepository;
+
     @BeforeEach
     void setUp() {
         outboxEventRepository.deleteAll();
@@ -66,6 +76,8 @@ class UserControllerIntegrationTests {
         passwordResetTokenRepository.deleteAll();
         emailVerificationTokenRepository.deleteAll();
         userIdentifierRepository.deleteAll();
+        roleAssignmentRepository.deleteAll();
+        roleRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -442,5 +454,66 @@ class UserControllerIntegrationTests {
                 .orElseThrow();
         JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
         return payload.path("payload").path("verificationToken").asText();
+    }
+
+    @Test
+    void meWithAccountIdReturnsOnlyRolesForThatAccount() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        UUID account1 = UUID.randomUUID();
+        UUID account2 = UUID.randomUUID();
+
+        Role roleAccount1 = new Role();
+        roleAccount1.setCode("ACCOUNT_ADMIN");
+        roleAccount1.setName("Account Admin");
+        roleRepository.save(roleAccount1);
+
+        Role roleAccount2 = new Role();
+        roleAccount2.setCode("ACCOUNT_MEMBER");
+        roleAccount2.setName("Account Member");
+        roleRepository.save(roleAccount2);
+
+        RoleAssignment assignment1 = new RoleAssignment();
+        assignment1.setUserId(userId);
+        assignment1.setAccountId(account1);
+        assignment1.setRoleCode("ACCOUNT_ADMIN");
+        roleAssignmentRepository.save(assignment1);
+
+        RoleAssignment assignment2 = new RoleAssignment();
+        assignment2.setUserId(userId);
+        assignment2.setAccountId(account2);
+        assignment2.setRoleCode("ACCOUNT_MEMBER");
+        roleAssignmentRepository.save(assignment2);
+
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("X-Arenax-User-Id", userId.toString())
+                        .header("X-Arenax-Account-Id", account1.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roles").isArray())
+                .andExpect(jsonPath("$.permissions").isArray())
+                .andExpect(jsonPath("$.roles[0]").value("ACCOUNT_ADMIN"))
+                .andExpect(jsonPath("$.roles").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("ACCOUNT_MEMBER"))));
+    }
+
+    @Test
+    void meWithoutAccountIdReturnsEmptyRolesAndPermissions() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        UUID account1 = UUID.randomUUID();
+
+        Role roleAccount1 = new Role();
+        roleAccount1.setCode("ACCOUNT_ADMIN");
+        roleAccount1.setName("Account Admin");
+        roleRepository.save(roleAccount1);
+
+        RoleAssignment assignment1 = new RoleAssignment();
+        assignment1.setUserId(userId);
+        assignment1.setAccountId(account1);
+        assignment1.setRoleCode("ACCOUNT_ADMIN");
+        roleAssignmentRepository.save(assignment1);
+
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("X-Arenax-User-Id", userId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.roles").isEmpty())
+                .andExpect(jsonPath("$.permissions").isEmpty());
     }
 }

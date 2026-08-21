@@ -135,7 +135,7 @@ public class AuthenticationService {
                     now.plusSeconds(jwtService.getRefreshTokenTtlSeconds()),
                     accountId));
 
-    RbacService.RbacDetails rbac = rbacService.getUserRbac(user.getId());
+    RbacService.RbacDetails rbac = rbacService.getUserRbac(user.getId(), accountId);
 
     String accessToken = jwtService.issueAccessToken(
             user.getId(),

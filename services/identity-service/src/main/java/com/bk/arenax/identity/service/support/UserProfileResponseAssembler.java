@@ -16,7 +16,7 @@ public class UserProfileResponseAssembler {
     private final UserEmailService userEmailService;
 
     public UserProfileResponse assemble(User user, UUID accountId) {
-        RbacService.RbacDetails rbac = rbacService.getUserRbac(user.getId());
+        RbacService.RbacDetails rbac = rbacService.getUserRbac(user.getId(), accountId);
         return new UserProfileResponse(
                 user.getId(),
                 user.getUsername(),

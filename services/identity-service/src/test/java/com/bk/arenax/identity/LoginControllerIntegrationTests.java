@@ -8,16 +8,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.RefreshSession;
+import com.bk.arenax.identity.domain.Role;
+import com.bk.arenax.identity.domain.RoleAssignment;
 import com.bk.arenax.identity.domain.User;
 import com.bk.arenax.identity.domain.UserIdentifier;
 import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
+import com.bk.arenax.identity.repository.RoleAssignmentRepository;
+import com.bk.arenax.identity.repository.RoleRepository;
 import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +67,12 @@ class LoginControllerIntegrationTests {
     @Autowired
     private UserIdentifierRepository userIdentifierRepository;
 
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private RoleAssignmentRepository roleAssignmentRepository;
+
     @BeforeEach
     void setUp() {
         outboxEventRepository.deleteAll();
@@ -69,6 +80,8 @@ class LoginControllerIntegrationTests {
         passwordResetTokenRepository.deleteAll();
         emailVerificationTokenRepository.deleteAll();
         userIdentifierRepository.deleteAll();
+        roleAssignmentRepository.deleteAll();
+        roleRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -332,5 +345,99 @@ class LoginControllerIntegrationTests {
                 .orElseThrow();
         JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
         return payload.path("payload").path("verificationToken").asText();
+    }
+
+    @Test
+    void loginWithAccountIdReturnsOnlyRolesForThatAccount() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        UUID account1 = UUID.randomUUID();
+        UUID account2 = UUID.randomUUID();
+
+        Role roleAccount1 = new Role();
+        roleAccount1.setCode("ACCOUNT_ADMIN");
+        roleAccount1.setName("Account Admin");
+        roleRepository.save(roleAccount1);
+
+        Role roleAccount2 = new Role();
+        roleAccount2.setCode("ACCOUNT_MEMBER");
+        roleAccount2.setName("Account Member");
+        roleRepository.save(roleAccount2);
+
+        RoleAssignment assignment1 = new RoleAssignment();
+        assignment1.setUserId(userId);
+        assignment1.setAccountId(account1);
+        assignment1.setRoleCode("ACCOUNT_ADMIN");
+        roleAssignmentRepository.save(assignment1);
+
+        RoleAssignment assignment2 = new RoleAssignment();
+        assignment2.setUserId(userId);
+        assignment2.setAccountId(account2);
+        assignment2.setRoleCode("ACCOUNT_MEMBER");
+        roleAssignmentRepository.save(assignment2);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "player1@arenax.dev",
+                                  "password": "Sup3rSecret!",
+                                  "accountId": "%s"
+                                }
+                                """.formatted(account1)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.roles").isArray())
+                .andExpect(jsonPath("$.user.permissions").isArray())
+                .andReturn();
+
+        JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
+        String accessToken = responseBody.path("accessToken").asText();
+        Jwt jwt = jwtDecoder.decode(accessToken);
+
+        assertThat(jwt.getClaimAsStringList("roles")).containsExactly("ACCOUNT_ADMIN");
+        assertThat(jwt.getClaimAsStringList("permissions")).isEmpty();
+
+        JsonNode userRoles = responseBody.path("user").path("roles");
+        assertThat(userRoles.isArray()).isTrue();
+        List<String> roleList = new ArrayList<>();
+        userRoles.forEach(node -> roleList.add(node.asText()));
+        assertThat(roleList).containsExactly("ACCOUNT_ADMIN");
+        assertThat(roleList).doesNotContain("ACCOUNT_MEMBER");
+    }
+
+    @Test
+    void loginWithoutAccountIdReturnsEmptyRolesAndPermissions() throws Exception {
+        UUID userId = registerAndVerifyUser();
+        UUID account1 = UUID.randomUUID();
+
+        Role roleAccount1 = new Role();
+        roleAccount1.setCode("ACCOUNT_ADMIN");
+        roleAccount1.setName("Account Admin");
+        roleRepository.save(roleAccount1);
+
+        RoleAssignment assignment1 = new RoleAssignment();
+        assignment1.setUserId(userId);
+        assignment1.setAccountId(account1);
+        assignment1.setRoleCode("ACCOUNT_ADMIN");
+        roleAssignmentRepository.save(assignment1);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "player1@arenax.dev",
+                                  "password": "Sup3rSecret!"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
+        String accessToken = responseBody.path("accessToken").asText();
+        Jwt jwt = jwtDecoder.decode(accessToken);
+
+        assertThat(jwt.getClaimAsStringList("roles")).isEmpty();
+        assertThat(jwt.getClaimAsStringList("permissions")).isEmpty();
+        assertThat(responseBody.path("user").path("roles")).isEmpty();
+        assertThat(responseBody.path("user").path("permissions")).isEmpty();
     }
 }
