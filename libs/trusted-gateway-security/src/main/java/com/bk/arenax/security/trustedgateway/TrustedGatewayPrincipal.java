@@ -1,12 +1,13 @@
-package com.bk.arenax.tenant.infrastructure.security;
+package com.bk.arenax.security.trustedgateway;
 
 import java.util.List;
 import java.util.UUID;
 
-public record GatewayUserPrincipal(
+public record TrustedGatewayPrincipal(
         UUID userId,
         UUID sessionId,
         UUID accountId,
         List<String> roles,
-        List<String> permissions) {
+        List<String> permissions
+) {
 }

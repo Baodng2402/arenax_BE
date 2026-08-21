@@ -4,7 +4,7 @@ import com.bk.arenax.tenant.dto.response.AccountSummaryResponse;
 import com.bk.arenax.tenant.dto.request.CreateWorkspaceRequest;
 import com.bk.arenax.tenant.dto.response.MembershipResponse;
 import com.bk.arenax.tenant.infrastructure.security.CurrentUserResolver;
-import com.bk.arenax.tenant.infrastructure.security.GatewayUserPrincipal;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayPrincipal;
 import com.bk.arenax.tenant.service.AccountService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -33,14 +33,14 @@ public class AccountController {
 
     @GetMapping
     public List<AccountSummaryResponse> myAccounts(Authentication authentication) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         return accountService.listAccounts(principal.userId(), principal.accountId());
     }
 
     @PostMapping("/workspaces")
     public ResponseEntity<AccountSummaryResponse> createWorkspace(
             Authentication authentication, @Valid @RequestBody CreateWorkspaceRequest request) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(accountService.createWorkspace(principal.userId(), request.name()));
     }
@@ -48,7 +48,7 @@ public class AccountController {
     @GetMapping("/{accountId}/memberships")
     public List<MembershipResponse> memberships(
             Authentication authentication, @PathVariable UUID accountId) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         return accountService.listMemberships(principal.userId(), accountId);
     }
 }

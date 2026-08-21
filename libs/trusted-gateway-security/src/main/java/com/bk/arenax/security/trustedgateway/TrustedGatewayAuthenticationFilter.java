@@ -1,4 +1,4 @@
-package com.bk.arenax.tenant.infrastructure.security;
+package com.bk.arenax.security.trustedgateway;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -8,13 +8,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-@Component
 public class TrustedGatewayAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String USER_ID_HEADER = "X-Arenax-User-Id";
@@ -23,30 +22,48 @@ public class TrustedGatewayAuthenticationFilter extends OncePerRequestFilter {
     private static final String ROLES_HEADER = "X-Arenax-Roles";
     private static final String PERMISSIONS_HEADER = "X-Arenax-Permissions";
 
+    private final TrustedGatewayFilterMode mode;
+
+    public TrustedGatewayAuthenticationFilter(TrustedGatewayFilterMode mode) {
+        this.mode = mode;
+    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+        if (mode == TrustedGatewayFilterMode.OPTIONAL_UNLESS_AUTHORIZATION_PRESENT) {
+            return StringUtils.hasText(request.getHeader(HttpHeaders.AUTHORIZATION))
+                    || !request.getRequestURI().startsWith("/api/");
+        }
         return !request.getRequestURI().startsWith("/api/");
     }
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         UUID userId = nullableUuid(request.getHeader(USER_ID_HEADER));
-        if (userId != null) {
-            GatewayUserPrincipal principal = new GatewayUserPrincipal(
-                    userId,
-                    nullableUuid(request.getHeader(SESSION_ID_HEADER)),
-                    nullableUuid(request.getHeader(ACCOUNT_ID_HEADER)),
-                    splitCsv(request.getHeader(ROLES_HEADER)),
-                    splitCsv(request.getHeader(PERMISSIONS_HEADER)));
 
-            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-            principal.roles().forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
-            principal.permissions().forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission)));
-
-            SecurityContextHolder.getContext().setAuthentication(new GatewayTrustedAuthentication(principal, authorities));
+        if (userId == null) {
+            if (mode == TrustedGatewayFilterMode.REQUIRED) {
+                throw new IllegalArgumentException("Trusted gateway header X-Arenax-User-Id is required");
+            }
+            filterChain.doFilter(request, response);
+            return;
         }
+
+        TrustedGatewayPrincipal principal = new TrustedGatewayPrincipal(
+                userId,
+                nullableUuid(request.getHeader(SESSION_ID_HEADER)),
+                nullableUuid(request.getHeader(ACCOUNT_ID_HEADER)),
+                splitCsv(request.getHeader(ROLES_HEADER)),
+                splitCsv(request.getHeader(PERMISSIONS_HEADER)));
+
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        principal.roles().forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role)));
+        principal.permissions().forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission)));
+
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TrustedGatewayAuthentication(principal, authorities));
+
         filterChain.doFilter(request, response);
     }
 

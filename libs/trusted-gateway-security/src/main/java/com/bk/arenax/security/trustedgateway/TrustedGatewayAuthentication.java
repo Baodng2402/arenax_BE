@@ -1,15 +1,14 @@
-package com.bk.arenax.tenant.infrastructure.security;
+package com.bk.arenax.security.trustedgateway;
 
 import java.util.Collection;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
-public class GatewayTrustedAuthentication extends AbstractAuthenticationToken {
+public class TrustedGatewayAuthentication extends AbstractAuthenticationToken {
 
-    private final GatewayUserPrincipal principal;
+    private final TrustedGatewayPrincipal principal;
 
-    public GatewayTrustedAuthentication(
-            GatewayUserPrincipal principal, Collection<? extends GrantedAuthority> authorities) {
+    public TrustedGatewayAuthentication(TrustedGatewayPrincipal principal, Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
         this.principal = principal;
         setAuthenticated(true);
@@ -21,7 +20,7 @@ public class GatewayTrustedAuthentication extends AbstractAuthenticationToken {
     }
 
     @Override
-    public Object getPrincipal() {
+    public TrustedGatewayPrincipal getPrincipal() {
         return principal;
     }
 }
