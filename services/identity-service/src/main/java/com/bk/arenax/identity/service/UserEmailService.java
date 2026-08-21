@@ -16,6 +16,7 @@ import com.bk.arenax.identity.service.support.EmailNormalizationService;
 import com.bk.arenax.identity.service.support.IdentityEventSerializer;
 import com.bk.arenax.identity.service.support.IdentityTokenGenerator;
 import com.bk.arenax.identity.service.support.IdentityTokenHasher;
+import com.bk.arenax.identity.service.support.UserEmailResponseMapper;
 import com.bk.arenax.messaging.EventEnvelope;
 import java.time.Duration;
 import java.time.Instant;
@@ -40,11 +41,13 @@ public class UserEmailService {
   private final IdentityTokenGenerator tokenGenerator;
   private final IdentityEventSerializer eventSerializer;
   private final EmailNormalizationService emailNormalizationService;
+  private final UserEmailResponseMapper emailResponseMapper;
 
   @Transactional(readOnly = true)
   public List<UserEmailResponse> listEmails(UUID userId) {
     userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
-    return emailResponses(userId);
+    return emailResponseMapper.toResponses(
+            userIdentifierRepository.findAllByUserIdAndTypeOrderByPrimaryDescCreatedAtAsc(userId, UserIdentifierType.EMAIL));
   }
 
   @Transactional
@@ -78,7 +81,7 @@ public class UserEmailService {
     UserIdentifier identifier = userIdentifierRepository.save(
             UserIdentifier.secondaryEmail(userId, normalizedEmail));
     issueVerification(identifier, user, Instant.now());
-    return toEmailResponse(identifier);
+    return emailResponseMapper.toResponse(identifier);
   }
 
   @Transactional
@@ -128,22 +131,6 @@ public class UserEmailService {
       throw new IllegalArgumentException("Username must be between 3 and 40 characters");
     }
     return normalized;
-  }
-
-  private List<UserEmailResponse> emailResponses(UUID userId) {
-    return userIdentifierRepository.findAllByUserIdAndTypeOrderByPrimaryDescCreatedAtAsc(userId, UserIdentifierType.EMAIL)
-            .stream()
-            .map(this::toEmailResponse)
-            .toList();
-  }
-
-  private UserEmailResponse toEmailResponse(UserIdentifier identifier) {
-    return new UserEmailResponse(
-            identifier.getId(),
-            identifier.getNormalizedValue(),
-            identifier.isPrimary(),
-            identifier.isVerified(),
-            identifier.getVerifiedAt());
   }
 
   private void issueVerification(UserIdentifier identifier, User user, Instant now) {
