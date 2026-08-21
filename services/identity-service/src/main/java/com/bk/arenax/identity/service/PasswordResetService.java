@@ -12,7 +12,7 @@ import com.bk.arenax.identity.repository.RefreshSessionRepository;
 import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.bk.arenax.identity.service.support.EmailNormalizationService;
-import com.bk.arenax.identity.service.support.IdentityEventSerializer;
+import com.bk.arenax.identity.service.support.IdentityEventPublisher;
 import com.bk.arenax.identity.service.support.IdentityTokenGenerator;
 import com.bk.arenax.identity.service.support.IdentityTokenHasher;
 import com.bk.arenax.messaging.EventEnvelope;
@@ -34,12 +34,11 @@ public class PasswordResetService {
   private final UserIdentifierRepository userIdentifierRepository;
   private final PasswordResetTokenRepository passwordResetTokenRepository;
   private final RefreshSessionRepository refreshSessionRepository;
-  private final OutboxEventRepository outboxEventRepository;
   private final PasswordEncoder passwordEncoder;
   private final IdentityTokenHasher tokenHasher;
   private final IdentityTokenGenerator tokenGenerator;
-  private final IdentityEventSerializer eventSerializer;
   private final EmailNormalizationService emailNormalizationService;
+  private final IdentityEventPublisher eventPublisher;
 
   @Transactional
   public void requestPasswordReset(String email) {
@@ -51,25 +50,7 @@ public class PasswordResetService {
       String rawResetToken = tokenGenerator.generate();
       passwordResetTokenRepository.save(
               PasswordResetToken.issue(user.getId(), tokenHasher.hash(rawResetToken), expiresAt));
-      outboxEventRepository.save(OutboxEvent.create(
-              "identity.user.password-reset-requested.v1",
-              1,
-              user.getId(),
-              "identity-service",
-              now,
-              eventSerializer.writePayload(new EventEnvelope<>(
-                      UUID.randomUUID(),
-                      "identity.user.password-reset-requested.v1",
-                      1,
-                      now,
-                      user.getId(),
-                      "identity-service",
-                      new UserPasswordResetRequestedPayload(
-                              user.getId(),
-                              identifier.getNormalizedValue(),
-                              user.getFullName(),
-                              rawResetToken,
-                              expiresAt)))));
+      eventPublisher.publishPasswordResetRequested(user, identifier, rawResetToken, expiresAt, now);
     });
   }
 

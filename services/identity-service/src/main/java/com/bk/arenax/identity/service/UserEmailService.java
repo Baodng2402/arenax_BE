@@ -13,7 +13,7 @@ import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.bk.arenax.identity.service.support.EmailNormalizationService;
-import com.bk.arenax.identity.service.support.IdentityEventSerializer;
+import com.bk.arenax.identity.service.support.IdentityEventPublisher;
 import com.bk.arenax.identity.service.support.IdentityTokenGenerator;
 import com.bk.arenax.identity.service.support.IdentityTokenHasher;
 import com.bk.arenax.identity.service.support.UserEmailResponseMapper;
@@ -36,12 +36,11 @@ public class UserEmailService {
   private final UserRepository userRepo;
   private final UserIdentifierRepository userIdentifierRepository;
   private final EmailVerificationTokenRepository emailVerificationTokenRepository;
-  private final OutboxEventRepository outboxEventRepository;
   private final IdentityTokenHasher tokenHasher;
   private final IdentityTokenGenerator tokenGenerator;
-  private final IdentityEventSerializer eventSerializer;
   private final EmailNormalizationService emailNormalizationService;
   private final UserEmailResponseMapper emailResponseMapper;
+  private final IdentityEventPublisher eventPublisher;
 
   @Transactional(readOnly = true)
   public List<UserEmailResponse> listEmails(UUID userId) {
@@ -138,24 +137,6 @@ public class UserEmailService {
     String rawVerificationToken = tokenGenerator.generate();
     emailVerificationTokenRepository.save(
             EmailVerificationToken.issue(user.getId(), identifier.getId(), tokenHasher.hash(rawVerificationToken), expiresAt));
-    outboxEventRepository.save(OutboxEvent.create(
-            "identity.user.verification-requested.v1",
-            1,
-            user.getId(),
-            "identity-service",
-            now,
-            eventSerializer.writePayload(new EventEnvelope<>(
-                    UUID.randomUUID(),
-                    "identity.user.verification-requested.v1",
-                    1,
-                    now,
-                    user.getId(),
-                    "identity-service",
-                    new UserVerificationRequestedPayload(
-                            user.getId(),
-                            identifier.getNormalizedValue(),
-                            user.getFullName(),
-                            rawVerificationToken,
-                            expiresAt)))));
+    eventPublisher.publishVerificationRequested(user, identifier, rawVerificationToken, expiresAt, now);
   }
 }

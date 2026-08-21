@@ -13,10 +13,9 @@ import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.bk.arenax.identity.service.support.EmailNormalizationService;
-import com.bk.arenax.identity.service.support.IdentityEventSerializer;
+import com.bk.arenax.identity.service.support.IdentityEventPublisher;
 import com.bk.arenax.identity.service.support.IdentityTokenGenerator;
 import com.bk.arenax.identity.service.support.IdentityTokenHasher;
-import com.bk.arenax.messaging.EventEnvelope;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
@@ -34,12 +33,11 @@ public class RegistrationService {
   private final UserRepository userRepo;
   private final UserIdentifierRepository userIdentifierRepository;
   private final EmailVerificationTokenRepository emailVerificationTokenRepository;
-  private final OutboxEventRepository outboxEventRepository;
   private final PasswordEncoder passwordEncoder;
   private final IdentityTokenHasher tokenHasher;
   private final IdentityTokenGenerator tokenGenerator;
-  private final IdentityEventSerializer eventSerializer;
   private final EmailNormalizationService emailNormalizationService;
+  private final IdentityEventPublisher eventPublisher;
 
   @Transactional
   public User register(String email, String password, String fullName){
@@ -57,29 +55,12 @@ public class RegistrationService {
     UserIdentifier primaryEmail = userIdentifierRepository.save(
             UserIdentifier.primaryEmail(savedUser.getId(), normalizedEmail, null));
 
-    Instant expiresAt = Instant.now().plus(EMAIL_VERIFICATION_TTL);
+    Instant now = Instant.now();
+    Instant expiresAt = now.plus(EMAIL_VERIFICATION_TTL);
     String rawVerificationToken = tokenGenerator.generate();
     emailVerificationTokenRepository.save(
             EmailVerificationToken.issue(savedUser.getId(), primaryEmail.getId(), tokenHasher.hash(rawVerificationToken), expiresAt));
-    outboxEventRepository.save(OutboxEvent.create(
-            "identity.user.verification-requested.v1",
-            1,
-            savedUser.getId(),
-            "identity-service",
-            Instant.now(),
-            eventSerializer.writePayload(new EventEnvelope<>(
-                    UUID.randomUUID(),
-                    "identity.user.verification-requested.v1",
-                    1,
-                    Instant.now(),
-                    savedUser.getId(),
-                    "identity-service",
-                    new UserVerificationRequestedPayload(
-                            savedUser.getId(),
-                            primaryEmail.getNormalizedValue(),
-                            savedUser.getFullName(),
-                            rawVerificationToken,
-                            expiresAt)))));
+    eventPublisher.publishVerificationRequested(savedUser, primaryEmail, rawVerificationToken, expiresAt, now);
     return savedUser;
   }
 
@@ -102,22 +83,7 @@ public class RegistrationService {
     identifier.verify(now);
     if (activatingUser) {
       user.verifyEmail(now);
-      outboxEventRepository.save(OutboxEvent.create(
-              "identity.user.registered.v2",
-              2,
-              user.getId(),
-              "identity-service",
-              now,
-              eventSerializer.writePayload(new EventEnvelope<>(
-                      UUID.randomUUID(),
-                      "identity.user.registered.v2",
-                      2,
-                      now,
-                      user.getId(),
-                      "identity-service",
-                      new UserRegisteredPayload(
-                              user.getId(),
-                              user.getFullName())))));
+      eventPublisher.publishUserRegistered(user, now);
       return;
     }
 
