@@ -1,4 +1,4 @@
-name: pr-fast-check.yml
+name: PR Fast Check
 on:
   pull_request:
     branches: [main]
