@@ -8,7 +8,6 @@ dependencies {
     implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.webmvc)
     implementation(libs.spring.boot.starter.amqp)
-    implementation(libs.spring.cloud.starter.openfeign)
     implementation(libs.spring.cloud.starter.netflix.eureka.client)
 }
 

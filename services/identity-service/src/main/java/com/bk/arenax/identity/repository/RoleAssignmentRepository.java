@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RoleAssignmentRepository extends JpaRepository<RoleAssignment, UUID> {
     List<RoleAssignment> findByUserId(UUID userId);
+
+    List<RoleAssignment> findByUserIdAndAccountId(UUID userId, UUID accountId);
 }

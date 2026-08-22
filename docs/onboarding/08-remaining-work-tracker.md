@@ -17,7 +17,7 @@ Trạng thái triển khai thực tế so với plan platform-core. Cập nhật
 - [ ] **Email thật khi reset password**: chỉ có event; chưa có channel delivery thực (SMTP).
 
 ### Gateway / API surface
-- [ ] **Routes cho competition-service và ranking-service** chưa được bật trong gateway (chưa có tests tương ứng).
+- [ ] **Route ranking-service** chưa được bật trong gateway (chưa có tests tương ứng).
 - [ ] **OpenAPI docs còn thiếu** cho competition và ranking slices.
 
 ### Security

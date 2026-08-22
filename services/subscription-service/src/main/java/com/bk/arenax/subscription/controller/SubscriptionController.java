@@ -2,7 +2,7 @@ package com.bk.arenax.subscription.controller;
 
 import com.bk.arenax.subscription.dto.request.ChangeSubscriptionPlanRequest;
 import com.bk.arenax.subscription.dto.response.CurrentSubscriptionResponse;
-import com.bk.arenax.subscription.infrastructure.security.GatewayUserPrincipal;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayPrincipal;
 import com.bk.arenax.subscription.service.SubscriptionService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,19 +23,19 @@ public class SubscriptionController {
     }
 
     @GetMapping("/current")
-    CurrentSubscriptionResponse current(GatewayUserPrincipal principal) {
+    CurrentSubscriptionResponse current(TrustedGatewayPrincipal principal) {
         return subscriptionService.getCurrent(principal.accountId());
     }
 
     @PatchMapping("/current/plan")
     CurrentSubscriptionResponse changePlan(
-            GatewayUserPrincipal principal,
+            TrustedGatewayPrincipal principal,
             @Valid @RequestBody ChangeSubscriptionPlanRequest request) {
         return subscriptionService.changePlan(principal.accountId(), request.plan());
     }
 
     @PostMapping("/current/cancel")
-    CurrentSubscriptionResponse cancel(GatewayUserPrincipal principal) {
+    CurrentSubscriptionResponse cancel(TrustedGatewayPrincipal principal) {
         return subscriptionService.cancel(principal.accountId());
     }
 }

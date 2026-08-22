@@ -31,3 +31,17 @@ Run a focused suite while iterating:
 - Competition: sport creation, match creation, join flow, completion, match-completed outbox event
 - Ranking: ELO update, idempotency, query endpoint
 - Gateway: route property binding and request ID propagation
+
+## Test Messaging Runtime Convention
+
+Service test profiles disable messaging runtime to keep tests fast and deterministic:
+
+| Service | Role | Disables |
+|---------|------|----------|
+| `identity-service` | producer only | `arenax.messaging.relay.enabled=false` |
+| `competition-service` | producer only | `arenax.messaging.relay.enabled=false` |
+| `ranking-service` | consumer only | `spring.rabbitmq.listener.simple.auto-startup=false` |
+| `tenant-service` | producer + consumer | both relay and listener |
+| `subscription-service` | producer + consumer | both relay and listener |
+
+All test `application.yaml` files follow this convention. Do not enable relay or listener in tests unless the test explicitly verifies messaging integration.

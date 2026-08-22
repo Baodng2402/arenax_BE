@@ -113,6 +113,12 @@ class PasswordResetControllerIntegrationTests {
         assertThat(payload.path("displayName").asText()).isEqualTo("Player One");
         assertThat(payload.path("resetToken").asText()).isNotBlank();
         assertThat(payload.path("resetToken").asText()).isNotEqualTo(resetTokens.getFirst().getTokenHash());
+        assertThat(payload.path("expiresAt").asText()).isNotBlank();
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventId").asText()).isNotBlank();
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventType").asText()).isEqualTo("identity.user.password-reset-requested.v1");
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventVersion").asInt()).isEqualTo(1);
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("occurredAt").asText()).isNotBlank();
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("producer").asText()).isEqualTo("identity-service");
     }
 
     @Test
@@ -171,6 +177,15 @@ class PasswordResetControllerIntegrationTests {
                 .orElseThrow();
         JsonNode payload = objectMapper.readTree(resetEvent.getPayload()).path("payload");
         assertThat(payload.path("email").asText()).isEqualTo("second@arenax.dev");
+        assertThat(payload.path("userId").asText()).isEqualTo(userId.toString());
+        assertThat(payload.path("displayName").asText()).isEqualTo("Player One");
+        assertThat(payload.path("resetToken").asText()).isNotBlank();
+        assertThat(payload.path("expiresAt").asText()).isNotBlank();
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventId").asText()).isNotBlank();
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventType").asText()).isEqualTo("identity.user.password-reset-requested.v1");
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventVersion").asInt()).isEqualTo(1);
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("occurredAt").asText()).isNotBlank();
+        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("producer").asText()).isEqualTo("identity-service");
     }
 
     @Test

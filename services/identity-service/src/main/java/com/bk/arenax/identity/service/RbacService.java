@@ -22,8 +22,15 @@ public class RbacService {
     }
 
     @Transactional(readOnly = true)
-    public RbacDetails getUserRbac(UUID userId) {
-        List<String> roleCodes = roleAssignmentRepository.findByUserId(userId).stream()
+    public RbacDetails getUserRbac(UUID userId, UUID accountId) {
+        List<RoleAssignment> assignments;
+        if (accountId == null) {
+            assignments = List.of();
+        } else {
+            assignments = roleAssignmentRepository.findByUserIdAndAccountId(userId, accountId);
+        }
+
+        List<String> roleCodes = assignments.stream()
                 .map(RoleAssignment::getRoleCode)
                 .distinct()
                 .collect(Collectors.toList());

@@ -7,7 +7,7 @@ import com.bk.arenax.identity.dto.request.UpdateProfileRequest;
 import com.bk.arenax.identity.dto.response.UserProfileResponse;
 import com.bk.arenax.identity.dto.response.UsernameResponse;
 import com.bk.arenax.identity.infrastructure.security.CurrentUserResolver;
-import com.bk.arenax.identity.infrastructure.security.GatewayUserPrincipal;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayPrincipal;
 import com.bk.arenax.identity.service.ProfileService;
 import com.bk.arenax.identity.service.UserEmailService;
 import jakarta.validation.Valid;
@@ -38,41 +38,41 @@ public class UserController {
 
     @GetMapping("/me")
     public UserProfileResponse me(Authentication authentication) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         return profileService.getProfile(principal.userId(), principal.accountId());
     }
 
     @PatchMapping("/me")
     public UserProfileResponse updateMe(Authentication authentication,
                                         @Valid @RequestBody UpdateProfileRequest request) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         return profileService.updateProfile(principal.userId(), request.fullName(), request.avatarUrl(), principal.accountId());
     }
 
     @PutMapping("/me/username")
     public UsernameResponse updateUsername(Authentication authentication,
                                            @Valid @RequestBody UpdateUsernameRequest request) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         return userEmailService.updateUsername(principal.userId(), request.username());
     }
 
     @DeleteMapping("/me/username")
     public ResponseEntity<Void> deleteUsername(Authentication authentication) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         userEmailService.clearUsername(principal.userId());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me/emails")
     public List<UserEmailResponse> myEmails(Authentication authentication) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         return userEmailService.listEmails(principal.userId());
     }
 
     @PostMapping("/me/emails")
     public ResponseEntity<UserEmailResponse> addEmail(Authentication authentication,
                                                       @Valid @RequestBody AddEmailRequest request) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userEmailService.addEmail(principal.userId(), request.email()));
     }
@@ -80,7 +80,7 @@ public class UserController {
     @PatchMapping("/me/emails/{emailId}/primary")
     public UserProfileResponse setPrimaryEmail(Authentication authentication,
                                                @PathVariable UUID emailId) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         userEmailService.setPrimaryEmail(principal.userId(), emailId);
         return profileService.getProfile(principal.userId(), principal.accountId());
     }
@@ -88,7 +88,7 @@ public class UserController {
     @DeleteMapping("/me/emails/{emailId}")
     public ResponseEntity<Void> deleteEmail(Authentication authentication,
                                             @PathVariable UUID emailId) {
-        GatewayUserPrincipal principal = currentUserResolver.resolve(authentication);
+        TrustedGatewayPrincipal principal = currentUserResolver.resolve(authentication);
         userEmailService.removeEmail(principal.userId(), emailId);
         return ResponseEntity.noContent().build();
     }

@@ -13,9 +13,10 @@ import com.bk.arenax.identity.repository.OutboxEventRepository;
 import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.bk.arenax.identity.service.support.EmailNormalizationService;
-import com.bk.arenax.identity.service.support.IdentityEventSerializer;
+import com.bk.arenax.identity.service.support.IdentityEventPublisher;
 import com.bk.arenax.identity.service.support.IdentityTokenGenerator;
 import com.bk.arenax.identity.service.support.IdentityTokenHasher;
+import com.bk.arenax.identity.service.support.UserEmailResponseMapper;
 import com.bk.arenax.messaging.EventEnvelope;
 import java.time.Duration;
 import java.time.Instant;
@@ -35,16 +36,17 @@ public class UserEmailService {
   private final UserRepository userRepo;
   private final UserIdentifierRepository userIdentifierRepository;
   private final EmailVerificationTokenRepository emailVerificationTokenRepository;
-  private final OutboxEventRepository outboxEventRepository;
   private final IdentityTokenHasher tokenHasher;
   private final IdentityTokenGenerator tokenGenerator;
-  private final IdentityEventSerializer eventSerializer;
   private final EmailNormalizationService emailNormalizationService;
+  private final UserEmailResponseMapper emailResponseMapper;
+  private final IdentityEventPublisher eventPublisher;
 
   @Transactional(readOnly = true)
   public List<UserEmailResponse> listEmails(UUID userId) {
     userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
-    return emailResponses(userId);
+    return emailResponseMapper.toResponses(
+            userIdentifierRepository.findAllByUserIdAndTypeOrderByPrimaryDescCreatedAtAsc(userId, UserIdentifierType.EMAIL));
   }
 
   @Transactional
@@ -78,7 +80,7 @@ public class UserEmailService {
     UserIdentifier identifier = userIdentifierRepository.save(
             UserIdentifier.secondaryEmail(userId, normalizedEmail));
     issueVerification(identifier, user, Instant.now());
-    return toEmailResponse(identifier);
+    return emailResponseMapper.toResponse(identifier);
   }
 
   @Transactional
@@ -130,45 +132,11 @@ public class UserEmailService {
     return normalized;
   }
 
-  private List<UserEmailResponse> emailResponses(UUID userId) {
-    return userIdentifierRepository.findAllByUserIdAndTypeOrderByPrimaryDescCreatedAtAsc(userId, UserIdentifierType.EMAIL)
-            .stream()
-            .map(this::toEmailResponse)
-            .toList();
-  }
-
-  private UserEmailResponse toEmailResponse(UserIdentifier identifier) {
-    return new UserEmailResponse(
-            identifier.getId(),
-            identifier.getNormalizedValue(),
-            identifier.isPrimary(),
-            identifier.isVerified(),
-            identifier.getVerifiedAt());
-  }
-
   private void issueVerification(UserIdentifier identifier, User user, Instant now) {
     Instant expiresAt = now.plus(EMAIL_VERIFICATION_TTL);
     String rawVerificationToken = tokenGenerator.generate();
     emailVerificationTokenRepository.save(
             EmailVerificationToken.issue(user.getId(), identifier.getId(), tokenHasher.hash(rawVerificationToken), expiresAt));
-    outboxEventRepository.save(OutboxEvent.create(
-            "identity.user.verification-requested.v1",
-            1,
-            user.getId(),
-            "identity-service",
-            now,
-            eventSerializer.writePayload(new EventEnvelope<>(
-                    UUID.randomUUID(),
-                    "identity.user.verification-requested.v1",
-                    1,
-                    now,
-                    user.getId(),
-                    "identity-service",
-                    new UserVerificationRequestedPayload(
-                            user.getId(),
-                            identifier.getNormalizedValue(),
-                            user.getFullName(),
-                            rawVerificationToken,
-                            expiresAt)))));
+    eventPublisher.publishVerificationRequested(user, identifier, rawVerificationToken, expiresAt, now);
   }
 }

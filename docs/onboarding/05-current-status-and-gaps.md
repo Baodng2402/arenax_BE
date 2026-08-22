@@ -46,7 +46,7 @@ Còn thiếu:
 Còn thiếu:
 
 - identity chưa validate `accountId` thuộc về user thật qua tenant membership
-- gateway security policy cho routes competition/ranking (chưa được bật; tenant/subscription đã có)
+- gateway security policy cho route ranking (chưa được bật; tenant/subscription/competition đã có)
 - service-to-service auth
 
 ### Infrastructure

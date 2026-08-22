@@ -35,7 +35,7 @@ Khi một user mới đăng ký:
 
 - User vừa register (`PENDING`, chưa verify email) bị từ chối login với `401`.
 - `access-service` không tồn tại; RBAC (roles, permissions, role assignments) nằm trong `identity-service` qua migration `V6__add_rbac_core.sql`. Không có handler nào tự gán role mặc định khi onboarding hiện tại.
-- Toàn bộ chuỗi event trên đã được nối runtime: mỗi service producer có outbox relay (`@Scheduled` poll các event chưa `published_at`, publish lên topic exchange `arenax.events` với routing key = event type) và mỗi consumer có `@RabbitListener` trên queue riêng (tenant/subscription/ranking). RabbitMQ nằm trong `compose.yaml`; test disabling qua `arenax.messaging.relay.enabled=false` và `spring.rabbitmq.listener.simple.auto-startup=false`.
+- Toàn bộ chuỗi event trên đã được nối runtime: mỗi service producer có outbox relay (`@Scheduled` poll các event chưa `published_at`, publish lên topic exchange `arenax.events` với routing key = event type) và mỗi consumer có `@RabbitListener` trên queue riêng (tenant/subscription/ranking). RabbitMQ nằm trong `compose.yaml`; test disabling qua `arenax.messaging.relay.enabled=false` (producer services) và `spring.rabbitmq.listener.simple.auto-startup=false` (consumer services). Xem [Testing Guide](../development/testing.md#test-messaging-runtime-convention) để biết convention chi tiết.
 
 ## Flow 2: Login Và Token Issuance
 
@@ -97,7 +97,7 @@ Cho phép client có một entrypoint HTTP chung.
   - `/api/v1/accounts/**` -> Tenant (protected)
   - `/api/v1/subscriptions/**` -> Subscription (protected)
 - Gateway thay JWT bằng trusted headers (`X-Arenax-User-Id`, `X-Arenax-Session-Id`, `X-Arenax-Account-Id`, `X-Arenax-Roles`, `X-Arenax-Permissions`) trước khi forward, và strip token cũ.
-- Các route cho competition/ranking hiện chưa được bật qua gateway.
+- Route competition (`/api/v1/sports/**`, `/api/v1/matches/**`) đã bật qua gateway. Route ranking chưa bật.
 
 ### Điều quan trọng cần nhớ
 

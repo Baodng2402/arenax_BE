@@ -109,5 +109,11 @@ class RegistrationControllerIntegrationTests {
         assertThat(eventPayload.path("payload").path("verificationToken").asText()).isNotBlank();
         assertThat(eventPayload.path("payload").path("verificationToken").asText())
                 .isNotEqualTo(verificationTokens.getFirst().getTokenHash());
+        assertThat(eventPayload.path("payload").path("expiresAt").asText()).isNotBlank();
+        assertThat(eventPayload.path("eventId").asText()).isNotBlank();
+        assertThat(eventPayload.path("eventType").asText()).isEqualTo("identity.user.verification-requested.v1");
+        assertThat(eventPayload.path("eventVersion").asInt()).isEqualTo(1);
+        assertThat(eventPayload.path("occurredAt").asText()).isNotBlank();
+        assertThat(eventPayload.path("producer").asText()).isEqualTo("identity-service");
     }
 }
