@@ -2,26 +2,45 @@
 
 # Subscription Service
 
-Responsibilities:
+## Responsibilities
 
 - manage per-account subscription state
 - provision the default plan during onboarding
 - derive entitlements from the current plan
 
-Current onboarding behavior:
+## Owns Data
+
+- `subscriptions`
+- `outbox_events`
+
+## Consumes
 
 - consumes `tenant.personal-account-created.v1`
+
+## Emits
+
 - creates one `FREE` subscription per account
 - emits `subscription.activated.v1`
-
-Emitted events:
 
 - `subscription.activated.v1`
 - `subscription.changed.v1`
 - `subscription.cancelled.v1`
 
-Public API (via gateway, `/api/v1`):
+## Public API
+
+Via gateway under `/api/v1`:
 
 - `GET /subscriptions/current` - current account's subscription with derived entitlements
 - `PATCH /subscriptions/current/plan` - change plan (`FREE`, `PRO`, `TEAM`)
 - `POST /subscriptions/current/cancel` - cancel the current account's subscription
+
+## Implementation Notes
+
+- Subscription state is account-scoped, not user-scoped.
+- Entitlements are derived from the stored plan when responses are built.
+
+## Read Next
+
+- `../contracts/openapi/subscription-api.yaml`
+- `../contracts/asyncapi/arenax-events.yaml`
+- `../architecture/conventions.md`

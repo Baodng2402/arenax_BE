@@ -2,16 +2,36 @@
 
 # Ranking Service
 
-Responsibilities:
+## Responsibilities
 
 - maintain player ELO projection
 - store ranking history
 - expose ranking query endpoints
 
-Current consumed event:
+## Owns Data
+
+- `player_rankings`
+- `ranking_history`
+
+## Consumes
 
 - `competition.match-completed.v1`
 
-Current API slice:
+## Emits
+
+- none currently
+
+## Public API
 
 - `GET /api/v1/rankings/users/{userId}`
+
+## Implementation Notes
+
+- Ranking is a projection service; it does not own match lifecycle.
+- ELO updates must stay idempotent per `matchId`.
+
+## Read Next
+
+- `../contracts/asyncapi/arenax-events.yaml`
+- `competition.md`
+- `../architecture/conventions.md`

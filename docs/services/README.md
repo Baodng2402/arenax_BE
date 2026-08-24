@@ -2,6 +2,8 @@
 
 `docs/services/` là chỗ deep-dive theo từng service sau khi bạn đã biết mình sẽ sửa module nào.
 
+Các file service trong folder này nên được đọc như quick deep-dive theo cùng một khung: responsibilities, owned data, incoming/outgoing integrations, public API, và implementation notes.
+
 ## Start Here
 
 1. Đọc `README.md` rồi `docs/overview.md` để nắm repo map.

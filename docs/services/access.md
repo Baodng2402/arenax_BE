@@ -11,3 +11,5 @@ Its responsibilities moved into `identity-service`:
 - include `roles` / `permissions` claims in issued JWTs
 
 See [Identity Service](identity.md) for the current state.
+
+This file is kept only as a historical tombstone so older discussions or branch notes still resolve to the current module.

@@ -120,7 +120,7 @@ competition: tạo sport/match → join → complete (ghi điểm)
 | How-to — implementation tasks | `docs/how-to/add-a-shared-lib.md`, `add-a-new-event-flow.md`, `add-an-internal-http-call.md` |
 | Reference — services | `docs/services/README.md`, `identity.md`, `tenant.md`, `subscription.md`, `competition.md`, `ranking.md`, `api-gateway.md` |
 | Reference — onboarding | `docs/onboarding/01-system-tour.md` → `02-core-flows.md` → `03-domain-glossary.md` → `04-data-and-integration-map.md` |
-| Reference — operations | `docs/operations/service-mesh-security.md` |
+| Reference — operations | `docs/operations/README.md`, `service-mesh-security.md` |
 
 ## 9. Deeper reading
 
