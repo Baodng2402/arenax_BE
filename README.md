@@ -1,55 +1,67 @@
 # ArenaX Backend
 
-ArenaX backend is a Gradle monorepo for Spring Boot microservices with database-per-service, event-driven boundaries, and centralized service discovery (Eureka).
+`arenax-be` is the backend monorepo for ArenaX, a sports competition platform.
 
-## Stack
+The system supports the core business areas behind the product:
 
-- Java 21
-- Spring Boot 4.0.6 / Spring Cloud Gateway 5.0.0 (Netflix 5.0.0)
-- Gradle Kotlin DSL with convention plugins under `build-logic/`
-- PostgreSQL + Flyway per service
-- Spring Data JPA
-- RabbitMQ events via transactional outbox (`libs/messaging-foundation`)
-- Spring Security JWT Resource Server (with embedded roles & permissions claims)
-- JUnit 5 + Spring Boot integration tests
+- user identity and authentication
+- accounts and memberships
+- subscription lifecycle
+- sports, matches, and results
+- ELO-based ranking
 
-## Repository Layout
+## What This Repository Contains
 
-```text
-build-logic/                 Gradle convention plugins
-docs/contracts/asyncapi/     Versioned integration event contracts
-docs/                        Documentation (overview, architecture, contracts, services, development)
-gradle/libs.versions.toml    Central dependency versions
-libs/messaging-foundation/   Shared messaging types (event envelope, outbox relay contract)
-compose.yaml                 Docker Compose setup (Postgres, Redis, Eureka, RabbitMQ)
-services/
-├── api-gateway/             Ingress routing & trusted-header forwarding
-├── identity-service/        Registration, authentication, JWT issuance, & RBAC
-├── tenant-service/          Personal accounts and memberships
-├── subscription-service/    Subscription lifecycle management
-├── competition-service/     Sports, matches, participants, and events
-├── ranking-service/         ELO projection and ranking query API
-└── discovery-server/        Netflix Eureka Service Discovery (Port 8761)
-```
+This repository is organized as a multi-service Spring Boot system. Each service owns its own boundary, persistence model, and business logic. Cross-service communication is event-first, with synchronous HTTP reserved for cases that need an immediate response.
 
-## Quick Start
+At a high level, the backend is responsible for:
 
-1. **Prerequisites:** Java 21, Docker & Docker Compose.
-2. **Run Tests:**
-   ```bash
-   ./gradlew test
-   ```
-3. **Start Infrastructure & Run Services:**
-   ```bash
-   docker compose up -d
-   ./gradlew :services:api-gateway:bootRun --args='--spring.profiles.active=local'
-   ./gradlew :services:identity-service:bootRun --args='--spring.profiles.active=local'
-   ```
+- registering and authenticating users
+- managing personal accounts and memberships
+- provisioning subscription state after onboarding
+- recording sports and match outcomes
+- calculating and exposing player rankings
 
-## Read This First
+## Core Architecture
 
-- **`docs/overview.md`** — canonical overview: architecture, service boundaries, core flows, identity internals, local development, and current status.
-- **Reference docs:**
-  - `docs/services/*.md` — service-by-service notes
-  - `docs/architecture/*.md` — conventions and boundary rules
-  - `docs/development/*.md` — local dev, testing, and running guides
+- multi-service Spring Boot architecture
+- database-per-service boundaries
+- RabbitMQ-based event integration using an outbox pattern
+- API gateway as the external entry point
+- Eureka for service discovery
+- JWT-based authentication issued by `identity-service`
+
+Implementation details, build conventions, contracts, and operational notes live under `docs/`.
+
+## Service Overview
+
+The current monorepo includes these main services:
+
+- `api-gateway`: external routing and trust boundary
+- `identity-service`: users, authentication, sessions, and RBAC
+- `tenant-service`: accounts and memberships
+- `subscription-service`: subscription lifecycle
+- `competition-service`: sports, matches, and match completion
+- `ranking-service`: ranking projection and ELO updates
+- `discovery-server`: Eureka registry
+
+The repo also contains shared technical modules under `libs/` and reusable Gradle convention plugins under `build-logic/`.
+
+## Repo Reading Path
+
+If you are new to the codebase, start here:
+
+1. `docs/overview.md` for the canonical architecture and domain map
+2. `docs/architecture/` for repo conventions and service boundaries
+3. `docs/contracts/` for AsyncAPI, OpenAPI, internal API, and security specs
+4. `docs/development/` for local development and testing workflow
+5. `docs/services/` for service-specific notes
+
+## Documentation Boundary
+
+This root `README.md` is intentionally a landing page.
+
+- keep high-level product and repo context here
+- keep architecture, implementation, onboarding, and contract details in `docs/`
+
+The canonical entry point is `docs/overview.md`.
