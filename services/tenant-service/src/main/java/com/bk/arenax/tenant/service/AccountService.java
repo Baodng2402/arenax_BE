@@ -9,10 +9,12 @@ import com.bk.arenax.tenant.domain.enums.AccountType;
 import com.bk.arenax.tenant.domain.enums.MembershipRole;
 import com.bk.arenax.tenant.repository.AccountRepository;
 import com.bk.arenax.tenant.repository.MembershipRepository;
+import java.util.Objects;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,11 +36,11 @@ public class AccountService {
         Map<UUID, Account> accountsById = accountRepository.findAllById(
                         memberships.stream().map(Membership::getAccountId).toList())
                 .stream()
-                .collect(java.util.stream.Collectors.toMap(Account::getId, account -> account));
+                .collect(Collectors.toMap(Account::getId, account -> account));
 
         return memberships.stream()
                 .map(membership -> toAccountSummary(accountsById.get(membership.getAccountId()), membership, currentAccountId))
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .sorted(Comparator.comparing(AccountSummaryResponse::name))
                 .toList();
     }

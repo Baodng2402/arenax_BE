@@ -14,6 +14,7 @@ import com.bk.arenax.tenant.domain.enums.MembershipRole;
 import com.bk.arenax.tenant.repository.AccountRepository;
 import com.bk.arenax.tenant.repository.MembershipRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,7 +73,7 @@ class AccountControllerIntegrationTests {
 
         mockMvc.perform(trusted(post("/api/v1/accounts/workspaces"), userId, null)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsBytes(java.util.Map.of("name", "Arena Ops"))))
+                        .content(objectMapper.writeValueAsBytes(Map.of("name", "Arena Ops"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Arena Ops"))
                 .andExpect(jsonPath("$.type").value("TEAM"))

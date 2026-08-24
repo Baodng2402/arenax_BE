@@ -4,6 +4,7 @@ import com.bk.arenax.identity.infrastructure.jwt.JwtProperties;
 import com.bk.arenax.security.trustedgateway.TrustedGatewayAuthenticationFilter;
 import com.bk.arenax.security.trustedgateway.TrustedGatewayFilterMode;
 import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
@@ -27,6 +28,7 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 import java.io.IOException;
@@ -63,7 +65,7 @@ public class SecurityConfiguration {
   RSAKey rsaKey(JwtProperties jwtProperties, RSAPublicKey publicKey, RSAPrivateKey privateKey){
     return new RSAKey.Builder(publicKey)
             .privateKey(privateKey)
-            .algorithm(com.nimbusds.jose.JWSAlgorithm.RS256)
+            .algorithm(JWSAlgorithm.RS256)
             .keyUse(KeyUse.SIGNATURE)
             .keyID(jwtProperties.keyId())
             .build();
@@ -117,7 +119,7 @@ public class SecurityConfiguration {
                     .requestMatchers(SecurityEndpoints.PUBLIC).permitAll()
                     .anyRequest().authenticated())
             .addFilterBefore(trustedGatewayAuthenticationFilter,
-                    org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
+                    UsernamePasswordAuthenticationFilter.class)
             .oauth2ResourceServer(oauth2->oauth2.jwt(
                     Customizer.withDefaults()
             ))

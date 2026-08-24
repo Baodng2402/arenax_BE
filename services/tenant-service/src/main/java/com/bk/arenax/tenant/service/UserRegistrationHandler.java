@@ -15,6 +15,7 @@ import com.bk.arenax.tenant.repository.OutboxEventRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,7 +73,7 @@ public class UserRegistrationHandler {
         }
 
         EventEnvelope<PersonalAccountCreatedPayload> envelope = new EventEnvelope<>(
-                java.util.UUID.randomUUID(),
+                UUID.randomUUID(),
                 "tenant.personal-account-created.v1",
                 1,
                 Instant.now(),

@@ -1,6 +1,8 @@
 package com.bk.arenax.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -491,7 +493,7 @@ class UserControllerIntegrationTests {
                 .andExpect(jsonPath("$.roles").isArray())
                 .andExpect(jsonPath("$.permissions").isArray())
                 .andExpect(jsonPath("$.roles[0]").value("ACCOUNT_ADMIN"))
-                .andExpect(jsonPath("$.roles").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("ACCOUNT_MEMBER"))));
+                .andExpect(jsonPath("$.roles").value(not(hasItem("ACCOUNT_MEMBER"))));
     }
 
     @Test

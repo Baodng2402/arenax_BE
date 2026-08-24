@@ -1,7 +1,13 @@
 package com.bk.arenax.identity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.repository.OutboxEventRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -10,10 +16,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 @SpringBootTest(properties = {
         "arenax.messaging.relay.enabled=true",
@@ -31,14 +33,14 @@ class OutboxEventRelayIntegrationTests {
     void relayPublishesUnpublishedEventsToExchangeAndMarksThemPublished() throws InterruptedException {
         OutboxEvent first = outboxEventRepository.save(
                 OutboxEvent.create("identity.user.registered.v2", 2, UUID.randomUUID(),
-                        "identity-service", java.time.Instant.now(), "{\"eventType\":\"identity.user.registered.v2\"}"));
+                        "identity-service", Instant.now(), "{\"eventType\":\"identity.user.registered.v2\"}"));
         OutboxEvent second = outboxEventRepository.save(
                 OutboxEvent.create("identity.user.verification-requested.v1", 1, UUID.randomUUID(),
-                        "identity-service", java.time.Instant.now(), "{\"eventType\":\"identity.user.verification-requested.v1\"}"));
+                        "identity-service", Instant.now(), "{\"eventType\":\"identity.user.verification-requested.v1\"}"));
         OutboxEvent alreadyPublished = outboxEventRepository.save(
                 OutboxEvent.create("identity.user.password-reset-requested.v1", 1, UUID.randomUUID(),
-                        "identity-service", java.time.Instant.now(), "{\"eventType\":\"identity.user.password-reset-requested.v1\"}"));
-        alreadyPublished.setPublishedAt(java.time.Instant.now());
+                        "identity-service", Instant.now(), "{\"eventType\":\"identity.user.password-reset-requested.v1\"}"));
+        alreadyPublished.setPublishedAt(Instant.now());
         outboxEventRepository.save(alreadyPublished);
 
         awaitPublished(first.getId());
@@ -46,7 +48,7 @@ class OutboxEventRelayIntegrationTests {
 
         ArgumentCaptor<String> routingKey = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
-        verify(rabbitTemplate, times(2)).convertAndSend(org.mockito.ArgumentMatchers.eq("arenax.events"),
+        verify(rabbitTemplate, times(2)).convertAndSend(eq("arenax.events"),
                 routingKey.capture(), message.capture());
 
         assertThat(routingKey.getAllValues()).containsExactlyInAnyOrder(

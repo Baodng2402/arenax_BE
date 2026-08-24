@@ -22,6 +22,7 @@ import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -207,7 +208,7 @@ class LoginControllerIntegrationTests {
 
         User user = userRepository.findById(userId).orElseThrow();
         assertThat(user.getFailedLoginAttempts()).isZero();
-        assertThat(user.getLockedUntil()).isAfter(java.time.Instant.now());
+        assertThat(user.getLockedUntil()).isAfter(Instant.now());
     }
 
     @Test

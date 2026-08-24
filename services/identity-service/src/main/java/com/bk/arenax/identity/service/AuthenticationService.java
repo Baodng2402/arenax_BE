@@ -1,13 +1,13 @@
 package com.bk.arenax.identity.service;
 
 import com.bk.arenax.identity.dto.response.AuthTokenResponse;
-import com.bk.arenax.identity.dto.response.UserEmailResponse;
 import com.bk.arenax.identity.dto.response.UserProfileResponse;
 import com.bk.arenax.identity.domain.RefreshSession;
 import com.bk.arenax.identity.domain.User;
 import com.bk.arenax.identity.domain.UserIdentifier;
 import com.bk.arenax.identity.domain.UserIdentifierType;
 import com.bk.arenax.identity.domain.UserStatus;
+import com.bk.arenax.identity.infrastructure.jwt.JwtService;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
 import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
@@ -18,7 +18,7 @@ import com.bk.arenax.identity.service.support.UserEmailResponseMapper;
 import com.bk.arenax.identity.service.support.UserProfileResponseAssembler;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -39,7 +39,7 @@ public class AuthenticationService {
   private final UserIdentifierRepository userIdentifierRepository;
   private final RefreshSessionRepository refreshSessionRepository;
   private final AuthenticationManager authenticationManager;
-  private final com.bk.arenax.identity.infrastructure.jwt.JwtService jwtService;
+  private final JwtService jwtService;
   private final RbacService rbacService;
   private final IdentityTokenHasher tokenHasher;
   private final IdentityTokenGenerator tokenGenerator;
@@ -65,7 +65,7 @@ public class AuthenticationService {
       authenticationManager.authenticate(
               new UsernamePasswordAuthenticationToken(normalizedEmail, password));
     } catch (AuthenticationException exception) {
-      if (user != null && user.getStatus() == com.bk.arenax.identity.domain.UserStatus.ACTIVE && !user.isLockedAt(now)) {
+      if (user != null && user.getStatus() == UserStatus.ACTIVE && !user.isLockedAt(now)) {
         user.recordFailedLogin(now, MAX_FAILED_LOGIN_ATTEMPTS, LOGIN_LOCK_DURATION);
         if (user.isLockedAt(now)) {
           throw new AccountLockedException();
@@ -156,12 +156,12 @@ public class AuthenticationService {
             rawRefreshToken);
   }
 
-  private java.util.Optional<User> findUserByVerifiedEmail(String normalizedEmail) {
+  private Optional<User> findUserByVerifiedEmail(String normalizedEmail) {
     return findVerifiedEmailIdentifier(normalizedEmail)
             .flatMap(identifier -> userRepo.findById(identifier.getUserId()));
   }
 
-  private java.util.Optional<UserIdentifier> findVerifiedEmailIdentifier(String normalizedEmail) {
+  private Optional<UserIdentifier> findVerifiedEmailIdentifier(String normalizedEmail) {
     return userIdentifierRepository.findByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)
             .filter(UserIdentifier::isVerified);
   }
