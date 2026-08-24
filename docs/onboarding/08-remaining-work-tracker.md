@@ -31,5 +31,5 @@ Trạng thái triển khai thực tế so với plan platform-core. Cập nhật
 
 ## Ghi chú vận hành
 
-- Khi thêm event mới: cập nhật `contracts/asyncapi/arenax-events.yaml` + example JSON, rồi thêm consumer (nếu có) — đừng để event "mồ côi".
+- Khi thêm event mới: cập nhật `docs/contracts/asyncapi/arenax-events.yaml` + example JSON, rồi thêm consumer (nếu có) — đừng để event "mồ côi".
 - Test mới về messaging nên dùng `@MockitoBean RabbitTemplate` + tắt relay/listener trong `src/test/resources/application.yaml` (xem pattern hiện có ở các service).

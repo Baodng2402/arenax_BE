@@ -30,8 +30,8 @@ Các service hiện có:
 
 ```text
 build-logic/                 Gradle conventions dùng chung
-contracts/asyncapi/          event contracts và examples
-docs/                        kiến trúc, onboarding, service notes
+docs/contracts/asyncapi/     event contracts và examples
+docs/                        kiến trúc, contracts, onboarding, service notes
 gradle/libs.versions.toml    version catalog
 services/
 ├── api-gateway/

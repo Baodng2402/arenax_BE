@@ -80,4 +80,4 @@ public class TenantAccountClientConfiguration {
 
 - Feign request/response model là local DTO của caller.
 - Không tạo shared Java contract jar giữa services.
-- Internal endpoint phải theo `contracts/internal-api/README.md`.
+- Internal endpoint phải theo `docs/contracts/internal-api/README.md`.

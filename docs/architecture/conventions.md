@@ -13,14 +13,14 @@ Mọi code mới phải ưu tiên tuân theo tài liệu này hơn thói quen t�
 - Không tạo code mới dưới root `src/`.
 - Mọi implementation mới phải nằm dưới `services/<service-name>/`.
 - Không tạo module `common-domain`, `shared-entity`, `shared-dto`, hoặc các module tương tự để tái sử dụng business model giữa services.
-- Chỉ được chia sẻ các concern kỹ thuật ổn định như Gradle conventions, test support, và contract files.
+- Chỉ được chia sẻ các concern kỹ thuật ổn định như Gradle conventions, test support, và contract spec files dưới `docs/contracts/`.
 - Không thêm Docker Compose, CI/CD, hay deployment scripts vào design của service nếu chưa thật sự cần cho source architecture.
 
 ### 3. Monorepo Layout
 
 ```text
 build-logic/                  Gradle conventions dùng chung
-contracts/asyncapi/           event contracts versioned
+docs/contracts/asyncapi/      event contracts versioned
 docs/architecture/            boundary, conventions, integration rules
 docs/development/             local dev và testing rules
 docs/services/                service-specific notes
@@ -145,7 +145,7 @@ private User user;
 
 ### 11. Event And Messaging Rules
 
-- Event contract chuẩn nằm ở `contracts/asyncapi/arenax-events.yaml`.
+- Event contract chuẩn nằm ở `docs/contracts/asyncapi/arenax-events.yaml`.
 - Mỗi service tự định nghĩa local payload record cùng shape với contract, không import Java class từ service khác.
 - Envelope chuẩn:
   - `eventId`
@@ -215,7 +215,7 @@ Mức tối thiểu cho một flow mới:
 - Gradle convention plugins
 - dependency version catalog
 - test utilities thuần kỹ thuật
-- contract files `contracts/asyncapi`
+- contract spec files `docs/contracts/asyncapi`
 
 Không được chia sẻ:
 
@@ -229,12 +229,12 @@ Không được chia sẻ:
 
 Nếu phân vân giữa reuse và duplicate, ưu tiên duplicate nhỏ để giữ boundary rõ.
 
-**`libs/` vs `contracts/` — để gì ở đâu:**
+**`libs/` vs contract specs — để gì ở đâu:**
 
 - `libs/` = **shared implementation** — code thật sự được import vào service để chạy (vd `libs/messaging-foundation`: `EventEnvelope` + outbox relay contract).
-- `contracts/` = **shared agreement** — spec mô tả giao tiếp giữa services (AsyncAPI, OpenAPI, security docs), không phải module runtime.
-- Chỉ đưa vào `libs/` thứ services cần import vào code. Thứ chỉ mô tả API/event/schema thì đưa vào `contracts/`.
-- Danh sách "Không được chia sẻ" ở trên (JPA entities, repositories, business services, event payload classes, DTOs, migrations, enum nghiệp vụ) áp dụng cho cả `libs/` lẫn `contracts/`.
+- `docs/contracts/` = **shared agreement** — spec mô tả giao tiếp giữa services (AsyncAPI, OpenAPI, security docs), không phải module runtime.
+- Chỉ đưa vào `libs/` thứ services cần import vào code. Thứ chỉ mô tả API/event/schema thì đưa vào `docs/contracts/`.
+- Danh sách "Không được chia sẻ" ở trên (JPA entities, repositories, business services, event payload classes, DTOs, migrations, enum nghiệp vụ) áp dụng cho cả `libs/` lẫn contract specs dưới `docs/contracts/`.
 
 ### 18. Definition Of Done For A New Slice
 

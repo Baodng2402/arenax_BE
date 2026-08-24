@@ -29,11 +29,10 @@ Lưu ý: `compose.yaml` có khai báo Redis (6379) nhưng chưa được dùng �
 ```
 arenax-be/
 ├── build-logic/                 # Convention plugins Gradle (java, spring-service, persistence)
-├── contracts/
-│   └── asyncapi/                # Hợp đồng event (arenax-events.yaml + examples)
 ├── docs/
 │   ├── overview.md              # ⭐ DOC NÀY — canonical
 │   ├── architecture/            # Reference: conventions, boundaries, event-conventions...
+│   ├── contracts/               # Spec artifacts: AsyncAPI, OpenAPI, internal API, security
 │   ├── development/             # Reference: local dev, git/PR conventions, testing...
 │   ├── onboarding/              # Reference: system tour, core flows, glossary...
 │   ├── operations/              # Reference: security mesh
@@ -63,8 +62,8 @@ arenax-be/
 ## 5. Boundaries & integration model
 
 - **Database-per-service**: mỗi service có schema + Flyway migration riêng; nghiêm cấm share JPA entity/repository/migration/DTO giữa các service. Điểm share hợp lệ duy nhất: `libs/messaging-foundation` (EventEnvelope + outbox relay contract — không chứa entity), contract files, test utils.
-- **`libs/` vs `contracts/`**: `libs/` = shared implementation (code import vào service, hiện chỉ có `libs/messaging-foundation`); `contracts/` = shared agreement (spec mô tả giao tiếp: AsyncAPI, OpenAPI, security). Thứ chỉ mô tả giao tiếp thì để `contracts/`; thứ services cần import để chạy mới vào `libs/`. Không share entity/repository/business service/DTO/migration qua `libs/`.
-- **HTTP chỉ khi cần câu trả lời ngay** (ví dụ: login trả JWT). Mọi thứ khác đi qua **event, versioned, có hợp đồng AsyncAPI** (`contracts/asyncapi/`).
+- **`libs/` vs contract specs**: `libs/` = shared implementation (code import vào service, hiện chỉ có `libs/messaging-foundation`); `docs/contracts/` = shared agreement (spec mô tả giao tiếp: AsyncAPI, OpenAPI, security). Thứ chỉ mô tả giao tiếp thì để `docs/contracts/`; thứ services cần import để chạy mới vào `libs/`. Không share entity/repository/business service/DTO/migration qua `libs/`.
+- **HTTP chỉ khi cần câu trả lời ngay** (ví dụ: login trả JWT). Mọi thứ khác đi qua **event, versioned, có hợp đồng AsyncAPI** (`docs/contracts/asyncapi/`).
 - **Outbox pattern**: service ghi `outbox_events` trong cùng transaction nghiệp vụ → relay (`@Scheduled`, poll 5s) publish lên exchange `arenax.events`, routing key = `eventType`. Consumer dùng `@RabbitListener` trên queue riêng của mình.
 - **Event envelope** (JSON): `eventId` (UUID, unique toàn cục, để idempotency), `eventType`, `eventVersion`, `occurredAt`, `correlationId` (business key: userId/accountId/matchId), `producer`, `payload`.
 - **Gateway trust boundary**: gateway là nơi duy nhất verify JWT của end-user. Với route đã authenticate, gateway đổi JWT thành trusted headers: `X-Arenax-User-Id`, `X-Arenax-Session-Id`, `X-Arenax-Account-Id`, `X-Arenax-Roles`, `X-Arenax-Permissions` (đồng thời strip header `Authorization` cũ).
@@ -128,6 +127,7 @@ Helpers dùng chung trong `service/support/`: `IdentityTokenHasher`, `IdentityTo
 | Vai trò | Đường dẫn |
 |---|---|
 | **Canonical (đọc trước)** | `README.md` → `docs/overview.md` |
+| Reference — contracts/specs | `docs/contracts/asyncapi/arenax-events.yaml`, `docs/contracts/openapi/*.yaml`, `docs/contracts/internal-api/README.md`, `docs/contracts/security/*.md` |
 | Reference — conventions | `docs/architecture/conventions.md`, `service-boundaries.md`, `event-conventions.md` |
 | Reference — development | `docs/development/local-development.md`, `running-the-stack.md`, `git-and-pr-conventions.md`, `testing.md` |
 | Reference — services | `docs/services/identity.md` (có internal structure), `tenant.md`, `subscription.md`, `competition.md`, `ranking.md`, `api-gateway.md` |

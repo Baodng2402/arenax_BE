@@ -346,7 +346,7 @@ Khi tạo service mới, bắt buộc update:
 
 Nếu service tạo hoặc consume event mới, update thêm:
 
-- `contracts/asyncapi/arenax-events.yaml`
+- `docs/contracts/asyncapi/arenax-events.yaml`
 - `docs/architecture/event-conventions.md` nếu rule mới xuất hiện
 
 ## 13. Required Docs Update When Adding A New Slice

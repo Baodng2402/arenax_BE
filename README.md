@@ -17,8 +17,8 @@ ArenaX backend is a Gradle monorepo for Spring Boot microservices with database-
 
 ```text
 build-logic/                 Gradle convention plugins
-contracts/asyncapi/          Versioned integration event contracts
-docs/                        Documentation (overview, architecture, services, development)
+docs/contracts/asyncapi/     Versioned integration event contracts
+docs/                        Documentation (overview, architecture, contracts, services, development)
 gradle/libs.versions.toml    Central dependency versions
 libs/messaging-foundation/   Shared messaging types (event envelope, outbox relay contract)
 compose.yaml                 Docker Compose setup (Postgres, Redis, Eureka, RabbitMQ)
