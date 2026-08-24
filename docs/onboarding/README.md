@@ -7,7 +7,7 @@ Chào mừng bạn đến với ArenaX Backend. Folder `docs/onboarding/` không
 ## Start Here
 
 1. Đọc `README.md` rồi `docs/overview.md` để nắm repo map và integration model.
-2. Đọc `docs/architecture/conventions.md` để biết boundary và rule trước khi sửa code.
+2. Đọc `docs/architecture/README.md`, rồi vào `conventions.md` để biết boundary và rule trước khi sửa code.
 3. Chọn đường đọc tiếp theo theo mục tiêu hiện tại của bạn.
 
 ## Reading Paths
@@ -18,6 +18,7 @@ Chào mừng bạn đến với ArenaX Backend. Folder `docs/onboarding/` không
 - `02-core-flows.md` — các flow nghiệp vụ chính
 - `03-domain-glossary.md` — các thuật ngữ domain quan trọng
 - `04-data-and-integration-map.md` — service nào own data gì, consume/produce gì
+- `06-first-week-guide.md` — checklist thực dụng cho tuần đầu
 
 ### Nếu bạn muốn bắt đầu implement
 
@@ -35,4 +36,4 @@ Chào mừng bạn đến với ArenaX Backend. Folder `docs/onboarding/` không
 
 - `docs/overview.md` là overview canonical; nếu onboarding doc nào lệch thì lấy `docs/overview.md` làm chuẩn.
 - `docs/contracts/` chứa contract/spec artifacts; không phải runtime module.
-- `docs/services/` là deep-dive theo từng service khi bạn đã biết mình sẽ chạm vào module nào.
+- `docs/services/README.md` là entrypoint cho deep-dive theo từng service khi bạn đã biết mình sẽ chạm vào module nào.

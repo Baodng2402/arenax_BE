@@ -2,6 +2,8 @@
 
 # 04. Data And Integration Map
 
+File này là onboarding map để trả lời nhanh: service nào own data gì, produce gì, consume gì. Source canonical vẫn là `docs/overview.md`, `docs/contracts/`, và code/test hiện tại.
+
 ## Service Ownership Map
 
 ### `identity-service`
@@ -148,7 +150,7 @@ competition.match-completed.v1
 
 Các mũi tên trên là consumer `@RabbitListener` gắn queue binding vào topic exchange `arenax.events`; producer publish qua outbox relay (đánh dấu `published_at` sau khi ack).
 
-Lưu ý: các mũi tên trên mô tả service-layer handlers được test bằng cách gọi handler trực tiếp; chưa có broker/outbox relay runtime thật sự.
+Lưu ý: các mũi tên trên mô tả integration shape hiện tại trong source. Chi tiết contract nằm ở `../contracts/asyncapi/arenax-events.yaml`.
 
 ## Boundary Mistakes Cần Tránh
 
@@ -157,3 +159,9 @@ Lưu ý: các mũi tên trên mô tả service-layer handlers được test bằ
 - Đừng gọi đồng bộ sang service khác trong request path chỉ vì tiện implement.
 - Đừng share một Java payload class giữa producer và consumer service.
 - Đừng thêm code mới vào root `src/`.
+
+## Read Next
+
+- `../architecture/service-boundaries.md` nếu bạn đang phân vân code nên nằm ở service nào.
+- `../how-to/add-a-new-event-flow.md` nếu bạn chuẩn bị nối một integration mới.
+- `../services/README.md` nếu bạn muốn deep-dive theo từng service.

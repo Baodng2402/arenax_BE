@@ -2,6 +2,14 @@
 
 # ArenaX Event Conventions
 
+File này là checklist ngắn cho event-driven integration. Rule tổng quát vẫn lấy từ `conventions.md`, nhất là mục 11 và 12.
+
+## Canonical Contract
+
+- Contract nguồn nằm ở `../contracts/asyncapi/arenax-events.yaml`.
+- Khi thêm event mới, update contract trước rồi mới code producer/consumer.
+- Payload Java class phải local trong từng service, không share giữa services.
+
 ## Envelope
 
 All integration events use this envelope:
@@ -26,3 +34,13 @@ All integration events use this envelope:
 - Breaking payload changes require a new event version.
 - Producers write to an outbox in the same local transaction as business state.
 - Consumers store handled `eventId` values to avoid duplicate processing.
+
+## Before You Merge
+
+- AsyncAPI contract đã update chưa?
+- Example JSON dưới `../contracts/asyncapi/examples/` đã có chưa?
+- Producer đã ghi business state và outbox cùng transaction chưa?
+- Consumer đã idempotent chưa?
+- Test duplicate delivery đã có chưa?
+
+Nếu bạn cần quy trình implement đầy đủ, đọc thêm `../how-to/add-a-new-event-flow.md`.

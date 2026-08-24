@@ -17,7 +17,7 @@ File này không lặp lại toàn bộ `docs/overview.md`. Mục tiêu của n�
 Nếu bạn muốn hiểu repo theo đúng thứ tự, đi như này:
 
 1. `docs/overview.md` — repo map, service map, integration model.
-2. `docs/architecture/conventions.md` — luật chơi khi thêm code mới.
+2. `docs/architecture/README.md` rồi `conventions.md` — luật chơi khi thêm code mới.
 3. `02-core-flows.md` — các flow business chạy xuyên services.
 4. `04-data-and-integration-map.md` — ai own data gì, produce/consume event gì.
 

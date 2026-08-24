@@ -115,18 +115,18 @@ competition: tạo sport/match → join → complete (ghi điểm)
 |---|---|
 | **Canonical (đọc trước)** | `README.md` → `docs/overview.md` |
 | Reference — contracts/specs | `docs/contracts/asyncapi/arenax-events.yaml`, `docs/contracts/openapi/*.yaml`, `docs/contracts/internal-api/README.md`, `docs/contracts/security/*.md` |
-| Reference — conventions | `docs/architecture/conventions.md`, `service-boundaries.md`, `event-conventions.md` |
+| Reference — conventions | `docs/architecture/README.md`, `conventions.md`, `service-boundaries.md`, `openfeign-conventions.md` |
 | Reference — development | `docs/development/README.md`, `local-development.md`, `running-the-stack.md`, `git-and-pr-conventions.md`, `testing.md` |
 | How-to — implementation tasks | `docs/how-to/add-a-shared-lib.md`, `add-a-new-event-flow.md`, `add-an-internal-http-call.md` |
-| Reference — services | `docs/services/identity.md` (có internal structure), `tenant.md`, `subscription.md`, `competition.md`, `ranking.md`, `api-gateway.md` |
+| Reference — services | `docs/services/README.md`, `identity.md`, `tenant.md`, `subscription.md`, `competition.md`, `ranking.md`, `api-gateway.md` |
 | Reference — onboarding | `docs/onboarding/01-system-tour.md` → `02-core-flows.md` → `03-domain-glossary.md` → `04-data-and-integration-map.md` |
 | Reference — operations | `docs/operations/service-mesh-security.md` |
 
 ## 9. Deeper reading
 
 - Nếu bạn đang **mới vào repo**: đọc `docs/onboarding/README.md` rồi đi tiếp qua `01-system-tour.md` và `02-core-flows.md`.
-- Nếu bạn đang **chuẩn bị code**: đọc `docs/architecture/conventions.md` trước, sau đó chọn file phù hợp trong `docs/how-to/`.
-- Nếu bạn đang **chạm vào một service cụ thể**: đọc thêm `docs/services/<service>.md`.
+- Nếu bạn đang **chuẩn bị code**: đọc `docs/architecture/README.md` trước, rồi vào `conventions.md` và file phù hợp trong `docs/how-to/`.
+- Nếu bạn đang **chạm vào một service cụ thể**: đọc `docs/services/README.md`, rồi vào `docs/services/<service>.md`.
 
 ## 10. Current status & gaps
 

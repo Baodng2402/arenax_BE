@@ -2,6 +2,8 @@
 
 # 06. First Week Guide
 
+File này là checklist tuần đầu cho người mới. Nó không thay `docs/onboarding/README.md`; chỉ giúp biến reading path thành hành động cụ thể.
+
 ## Mục Tiêu Của Người Mới Trong Tuần Đầu
 
 Không phải viết feature lớn ngay.
@@ -19,7 +21,7 @@ Mục tiêu đúng là:
 
 1. `README.md`
 2. `docs/onboarding/README.md`
-3. `docs/architecture/service-boundaries.md`
+3. `docs/architecture/README.md`
 4. `docs/architecture/conventions.md`
 5. `docs/services/identity.md`
 6. `docs/services/competition.md`
@@ -100,9 +102,9 @@ Nếu bạn đã onboard xong, bạn nên trả lời được:
 
 Đọc theo thứ tự ưu tiên:
 
-1. `docs/onboarding/*.md`
-2. `docs/architecture/*.md`
-3. `docs/services/*.md`
+1. `docs/onboarding/README.md`
+2. `docs/architecture/README.md`
+3. `docs/services/README.md`
 4. test integration của service liên quan
 
 Nếu vẫn mơ hồ, quay lại câu hỏi gốc:
@@ -110,3 +112,8 @@ Nếu vẫn mơ hồ, quay lại câu hỏi gốc:
 "service nào own state này?"
 
 Đó thường là điểm mở nút nhanh nhất trong repo này.
+
+## Read Next
+
+- `../how-to/` nếu bạn đã sẵn sàng bắt đầu implement.
+- `../development/README.md` nếu bạn cần chạy repo hoặc verify thay đổi local.

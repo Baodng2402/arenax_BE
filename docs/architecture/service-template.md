@@ -2,9 +2,15 @@
 
 # ArenaX Service Template
 
-Tài liệu này là template chuẩn để tạo một service mới hoặc một vertical slice mới trong service hiện có.
+Tài liệu này là template chuẩn khi thật sự cần tạo **service mới**.
 
-Mục tiêu là giúp dev mới không phải đoán structure, file nào cần tạo, test nào phải có, và rule nào bắt buộc phải giữ.
+Nếu bạn chỉ đang thêm **vertical slice mới trong service hiện có**, đừng bắt đầu từ file này. Hãy đọc:
+
+- `conventions.md`
+- `../how-to/add-a-new-event-flow.md` nếu là flow event
+- `../how-to/add-an-internal-http-call.md` nếu là internal HTTP
+
+Mục tiêu của file này là giúp dev mới không phải đoán build wiring, skeleton tối thiểu, và docs nào bắt buộc phải update khi repo có thêm một service boundary mới.
 
 ## 1. Khi Nào Tạo Service Mới
 
@@ -87,79 +93,24 @@ public class InventoryServiceApplication {
 - nếu có HTTP thì dùng `MockMvc`
 - nếu có event handler thì test bằng cách gọi handler trực tiếp và assert persistence side effects
 
-## 4. Template Cho Một Vertical Slice Mới
+## 4. Minimal Skeleton After Bootstrap
 
-Một slice mới nên đi theo thứ tự này:
-
-1. viết test fail
-2. chạy test để xác nhận fail đúng lý do
-3. thêm entity/repository/migration tối thiểu
-4. thêm service logic tối thiểu
-5. thêm controller hoặc handler
-6. chạy lại focused test
-7. chạy `./gradlew test` ở root
-8. update docs nếu public behavior hoặc integration behavior đổi
-
-## 5. Template File Theo Từng Loại Flow
-
-### 5.1 HTTP Create Flow
-
-Ví dụ create resource mới:
+Sau khi module chạy được, một service mới thường sẽ có ít nhất:
 
 ```text
-controller/<Feature>Controller.java
-dto/request/Create<Feature>Request.java
-dto/response/<Feature>Response.java
-service/<Feature>Service.java
-domain/entity/<Feature>.java
-repository/<Feature>Repository.java
-db/migration/Vn__....sql
-test/.../<Feature>ControllerIntegrationTests.java
+configuration/
+controller/
+domain/entity/
+dto/request/
+dto/response/
+messaging/
+repository/
+service/
 ```
 
-Test tối thiểu phải có:
+Không cần tạo đủ mọi package ngay ngày đầu nếu service chưa dùng tới.
 
-- create success
-- duplicate hoặc invalid input
-- persistence assertion
-
-### 5.2 Event Consumer Flow
-
-Ví dụ consume event từ service khác:
-
-```text
-messaging/EventEnvelope.java
-messaging/<IncomingPayload>.java
-service/<IncomingEvent>Handler.java
-repository/... nếu cần
-domain/entity/... nếu cần state mới
-db/migration/Vn__....sql nếu có bảng mới
-test/.../<IncomingEvent>HandlerIntegrationTests.java
-```
-
-Test tối thiểu phải có:
-
-- first delivery success
-- duplicate delivery idempotent
-- side effect chính được assert rõ
-
-### 5.3 Event Producer Flow
-
-Nếu slice phát event ra ngoài, phải có thêm:
-
-```text
-domain/entity/OutboxEvent.java
-repository/OutboxEventRepository.java
-messaging/<OutgoingPayload>.java
-```
-
-Test tối thiểu phải assert:
-
-- business state được save
-- outbox row được ghi cùng flow
-- duplicate action không phát thêm event ngoài ý muốn nếu rule yêu cầu idempotent publish
-
-## 6. Template Entity Rules
+## 5. Template Entity Rules
 
 Một entity mới nên tuân theo pattern sau:
 
@@ -193,7 +144,7 @@ Rule:
 - không add relation sang service khác
 - nếu cần external reference thì lưu UUID
 
-## 7. Template Repository Rules
+## 6. Template Repository Rules
 
 Repository chỉ nên chứa:
 
@@ -217,7 +168,7 @@ List<Order> findByStatusAndCreatedAtAfterAndCreatedAtBeforeAndUserIdIn(...)
 
 trừ khi flow hiện tại thật sự dùng tới.
 
-## 8. Template Service Rules
+## 7. Template Service Rules
 
 Service class nên:
 
@@ -232,7 +183,7 @@ Service class không nên:
 - trả `ResponseEntity`
 - gọi service module khác bằng Java dependency
 
-## 9. Template Controller Rules
+## 8. Template Controller Rules
 
 Controller mới nên:
 
@@ -262,7 +213,7 @@ public class OrderController {
 }
 ```
 
-## 10. Template Event Payload Rules
+## 9. Template Event Payload Rules
 
 Payload record local phải mirror contract nhưng nằm trong service của chính nó.
 
@@ -278,9 +229,9 @@ public record OrderCreatedPayload(
 
 Không import `OrderCreatedPayload` từ service khác.
 
-## 11. Template Tests
+## 10. Template Tests
 
-### 11.1 HTTP Integration Test Template
+### 10.1 HTTP Integration Test Template
 
 ```java
 @SpringBootTest
@@ -312,7 +263,7 @@ class OrderControllerIntegrationTests {
 }
 ```
 
-### 11.2 Event Handler Test Template
+### 10.2 Event Handler Test Template
 
 ```java
 @SpringBootTest
@@ -336,30 +287,21 @@ class OrderCreatedHandlerIntegrationTests {
 }
 ```
 
-## 12. Required Docs Update When Adding A Service
+## 11. Required Docs Update When Adding A Service
 
 Khi tạo service mới, bắt buộc update:
 
 - `README.md`
+- `docs/overview.md`
 - `docs/architecture/service-boundaries.md`
 - `docs/services/<service>.md`
 
 Nếu service tạo hoặc consume event mới, update thêm:
 
 - `docs/contracts/asyncapi/arenax-events.yaml`
-- `docs/architecture/event-conventions.md` nếu rule mới xuất hiện
+- `docs/architecture/conventions.md` nếu repo-level rule mới xuất hiện
 
-## 13. Required Docs Update When Adding A New Slice
-
-Không phải slice nào cũng cần update README, nhưng cần update docs khi:
-
-- thêm endpoint public mới
-- thêm event mới
-- thêm invariant business quan trọng
-- thay đổi onboarding/integration behavior
-- thêm command dev/test mới
-
-## 14. Definition Of Ready Trước Khi Code
+## 12. Definition Of Ready Trước Khi Code
 
 Trước khi bắt đầu code một service mới hoặc slice mới, dev phải trả lời được:
 
@@ -371,7 +313,7 @@ Trước khi bắt đầu code một service mới hoặc slice mới, dev phả
 
 Nếu chưa trả lời được, quay lại design/docs trước.
 
-## 15. Definition Of Done Cho Service Mới
+## 13. Definition Of Done Cho Service Mới
 
 Một service mới chỉ được xem là đủ baseline khi có:
 
@@ -383,13 +325,10 @@ Một service mới chỉ được xem là đủ baseline khi có:
 - ít nhất một doc dưới `docs/services/`
 - root `./gradlew test` vẫn xanh
 
-## 16. Definition Of Done Cho Slice Mới
+## 14. What This File Does Not Cover
 
-Một slice mới chỉ được xem là hoàn thành khi:
+- flow event mới trong service hiện có
+- internal HTTP call giữa 2 service đã tồn tại
+- shared lib mới dưới `libs/`
 
-- test fail-first đã tồn tại
-- focused test đã xanh
-- root suite vẫn xanh
-- migration và constraints tương ứng đã có
-- docs liên quan đã update nếu behavior public/integration đổi
-- không tạo vi phạm mới với `docs/architecture/conventions.md`
+Các việc đó đã có doc riêng dưới `../how-to/`.

@@ -52,11 +52,11 @@ The repo also contains shared technical modules under `libs/` and reusable Gradl
 If you are new to the codebase, start here:
 
 1. `docs/overview.md` for the canonical architecture and domain map
-2. `docs/architecture/` for repo conventions and service boundaries
+2. `docs/architecture/README.md` for repo conventions, boundaries, and architecture reading paths
 3. `docs/contracts/` for AsyncAPI, OpenAPI, internal API, and security specs
 4. `docs/how-to/` for task-oriented implementation guides
 5. `docs/development/` for local development and testing workflow
-6. `docs/services/` for service-specific notes
+6. `docs/services/README.md` for service-specific notes
 
 ## Documentation Boundary
 

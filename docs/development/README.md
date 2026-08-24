@@ -8,7 +8,7 @@
 
 1. Đọc `README.md`
 2. Đọc `docs/overview.md`
-3. Đọc `docs/architecture/conventions.md` nếu bạn sắp sửa code
+3. Đọc `docs/architecture/README.md`, rồi vào `conventions.md` nếu bạn sắp sửa code
 4. Quay lại `docs/development/local-development.md` để chạy local
 
 ## Reading Paths

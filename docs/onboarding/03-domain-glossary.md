@@ -2,6 +2,8 @@
 
 # 03. Domain Glossary
 
+File này là glossary onboarding ngắn. Nếu định nghĩa nào lệch với source hiện tại, lấy `docs/overview.md` và docs của service liên quan làm chuẩn.
+
 ## User
 
 Identity của người dùng trong hệ thống.
@@ -87,3 +89,8 @@ Nó là nền cho message publishing đáng tin cậy. Outbox hiện có cột `
 ## Correlation ID
 
 ID dùng để nối nhiều event trong cùng một business workflow (producer hay dùng `correlationId` = chính khóa business như userId/accountId/matchId).
+
+## Read Next
+
+- `04-data-and-integration-map.md` nếu bạn muốn nối các term này với ownership/integration thực tế.
+- `../services/README.md` nếu bạn đã biết service mình sắp sửa.

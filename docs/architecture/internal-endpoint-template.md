@@ -4,6 +4,8 @@
 
 Template này dùng khi một service cần expose HTTP nội bộ cho service khác gọi qua OpenFeign.
 
+Rule tổng quát nằm ở `openfeign-conventions.md` và `../contracts/internal-api/README.md`. File này chỉ giữ skeleton tối thiểu để copy nhanh.
+
 ## Route Rules
 
 - Prefix: `/internal/v1/**`
@@ -39,6 +41,12 @@ public class InternalAccountController {
 - Do not read `Authorization` or `X-Arenax-*` as user identity.
 - Receiver authorizes workload at infra layer, not via caller-supplied user headers.
 - Document caller service in mesh/network policy.
+
+## Read Next
+
+- `openfeign-conventions.md`
+- `../how-to/add-an-internal-http-call.md`
+- `../contracts/internal-api/README.md`
 
 ## Test Minimum
 
