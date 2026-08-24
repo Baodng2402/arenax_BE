@@ -1,46 +1,56 @@
-> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+> **Quickstart canonical** — nếu bạn chỉ muốn biết cách chạy repo local để bắt đầu code, đọc file này trước. Chi tiết hơn nằm ở [Development Guide](./README.md).
 
 # Local Development
 
 ## Prerequisites
 
 - JDK 21
-- PostgreSQL 16 available locally or through Docker
-- Docker available if you want the quick local PostgreSQL setup below
+- Docker
 
-## Current Scope
+## Quick Reality Check
 
-The repository is currently source-first:
-
-- service code and tests are implemented
-- RabbitMQ broker runtime is wired (outbox relay + listeners; broker provided by `compose.yaml`)
-- Docker Compose defines Postgres, Redis và discovery-server (`compose.yaml`)
-- CI/CD và VPS deployment chưa được định nghĩa
-
-## Important Reality Check
-
-Sau khi restructure, root project không còn là một Spring Boot app runnable.
+Repo này là multi-service Gradle monorepo, không phải app runnable ở root.
 
 Điều đó có nghĩa là:
 
-- bạn vẫn dùng root cho `./gradlew test`
-- nhưng bạn không chạy app từ root như monolith cũ nữa
-- bạn phải chạy từng subproject bằng task dạng `:services:<service>:bootRun`
+- dùng root cho `./gradlew test`
+- không chạy app từ root như monolith cũ
+- chạy từng service bằng task dạng `:services:<service>:bootRun`
 
-Để giảm friction, repo hiện có thêm:
-
-- profile `local` cho từng service
-- `bin/run-service`
-- `bin/run-local-stack`
-
-Theo Gradle multi-project syntax, task của subproject được gọi bằng full project path, ví dụ:
+Ví dụ:
 
 ```bash
 ./gradlew :services:api-gateway:bootRun
 ./gradlew :services:identity-service:bootRun
 ```
 
-Theo Spring Boot Gradle plugin, `bootRun` là task dùng để chạy application của subproject khi plugin Spring Boot được apply.
+Persistence services nên chạy với profile `local`.
+
+## Quick Start
+
+1. Start infra:
+
+   ```bash
+   docker compose up -d
+   ```
+
+2. Run the full test suite once:
+
+   ```bash
+   ./gradlew test
+   ```
+
+3. Start the service you need:
+
+   ```bash
+   ./gradlew :services:identity-service:bootRun --args='--spring.profiles.active=local'
+   ./gradlew :services:api-gateway:bootRun --args='--spring.profiles.active=local'
+   ```
+
+4. Check the main entrypoints:
+
+   - gateway health: `http://localhost:8080/actuator/health`
+   - Eureka dashboard: `http://localhost:8761`
 
 ## Useful Commands
 
@@ -50,9 +60,9 @@ Theo Spring Boot Gradle plugin, `bootRun` là task dùng để chạy applicatio
 ./gradlew :services:identity-service:test
 ./gradlew :services:competition-service:test
 ./gradlew :services:api-gateway:bootRun
-bin/run-service gateway
-bin/run-service identity
-bin/run-local-stack start
+./gradlew :services:identity-service:bootRun --args='--spring.profiles.active=local'
+docker compose up -d
+docker compose ps
 ```
 
 ## Current Startup Limitation
@@ -96,8 +106,9 @@ Gateway route defaults live in `services/api-gateway/src/main/resources/applicat
 
 Quan trọng: port local hiện được set trong `application-local.yaml` của từng service. Vì vậy khi chạy với profile `local`, bạn không cần tự truyền `--server.port=...` nữa.
 
-Đọc thêm:
+Đọc tiếp theo nhu cầu:
 
+- `docs/development/README.md`
 - `docs/development/running-the-stack.md`
 - `docs/development/running-services.md`
 - `docs/development/intellij-setup.md`

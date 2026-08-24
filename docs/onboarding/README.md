@@ -2,34 +2,37 @@
 
 # ArenaX Onboarding Guide
 
-Chào mừng bạn đến với dự án ArenaX Backend! Tài liệu này định hướng nhanh cho developer mới tham gia dự án.
+Chào mừng bạn đến với ArenaX Backend. Folder `docs/onboarding/` không phải canonical source of truth; nó là lộ trình đọc để giúp developer mới vào repo nhanh hơn.
 
-## 🚀 3 Bước Bắt Đầu Nhanh
+## Start Here
 
-1. **Đọc tổng quan kiến trúc hệ thống:**
-   - `docs/onboarding/01-system-tour.md` (Tổng quan các service)
-   - `docs/onboarding/02-core-flows.md` (Luồng xử lý cốt lõi)
-2. **Khởi chạy môi trường local:**
-   - Xem hướng dẫn chi tiết tại `docs/development/running-the-stack.md`
-   - Hoặc chạy nhanh hạ tầng:
-     ```bash
-     docker compose up -d
-     ```
-3. **Tuân thủ quy chuẩn code:**
-   - `docs/architecture/conventions.md`
-   - `docs/architecture/service-boundaries.md`
+1. Đọc `README.md` rồi `docs/overview.md` để nắm repo map và integration model.
+2. Đọc `docs/architecture/conventions.md` để biết boundary và rule trước khi sửa code.
+3. Chọn đường đọc tiếp theo theo mục tiêu hiện tại của bạn.
 
-## 📚 Mục Lục Tài Liệu
+## Reading Paths
 
-- **Onboarding:**
-  - `01-system-tour.md` - Sơ đồ và chức năng các microservices
-  - `02-core-flows.md` - Luồng nghiệp vụ chính
-  - `03-domain-glossary.md` - Thuật ngữ domain
-  - `04-data-and-integration-map.md` - Bản đồ dữ liệu và tích hợp
-- **Development:**
-  - `running-the-stack.md` - Hướng dẫn chạy local stack
-  - `intellij-setup.md` - Cấu hình IntelliJ IDEA
-  - `testing.md` - Quy chuẩn viết test
-- **Architecture:**
-  - `service-boundaries.md` - Ranh giới giữa các service
-  - `conventions.md` - Convention lập trình chung
+### Nếu bạn mới vào repo
+
+- `01-system-tour.md` — cách nhìn repo và boundary cho đúng
+- `02-core-flows.md` — các flow nghiệp vụ chính
+- `03-domain-glossary.md` — các thuật ngữ domain quan trọng
+- `04-data-and-integration-map.md` — service nào own data gì, consume/produce gì
+
+### Nếu bạn muốn bắt đầu implement
+
+- `../how-to/add-a-shared-lib.md`
+- `../how-to/add-a-new-event-flow.md`
+- `../how-to/add-an-internal-http-call.md`
+- `../development/README.md`
+
+### Nếu bạn muốn biết trạng thái repo
+
+- `05-current-status-and-gaps.md` — snapshot tổng hợp
+- `08-remaining-work-tracker.md` — checklist hành động còn mở
+
+## Notes
+
+- `docs/overview.md` là overview canonical; nếu onboarding doc nào lệch thì lấy `docs/overview.md` làm chuẩn.
+- `docs/contracts/` chứa contract/spec artifacts; không phải runtime module.
+- `docs/services/` là deep-dive theo từng service khi bạn đã biết mình sẽ chạm vào module nào.

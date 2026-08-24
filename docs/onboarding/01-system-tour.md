@@ -2,71 +2,44 @@
 
 # 01. System Tour
 
-## Mục Tiêu Của Repo Này
+File này không lặp lại toàn bộ `docs/overview.md`. Mục tiêu của nó là chỉ cho bạn cách nhìn repo này cho đúng trước khi đi sâu vào code.
 
-ArenaX backend hiện là một microservice monorepo theo hướng source-first.
+## The Right Mental Model
 
-Mục tiêu hiện tại là:
+- Đây là **multi-service monorepo**, không phải monolith tách package.
+- Mỗi service own database schema, migration, entity, repository, test, và business flow của mình.
+- Cross-service communication mặc định là **event-first**; HTTP nội bộ chỉ dùng khi cần response ngay.
+- `libs/` chỉ dành cho shared technical implementation ổn định; không dùng để gom business code dùng chung.
+- `docs/contracts/` là contract/spec artifacts, không phải runtime module.
 
-- tách rõ business boundary
-- giữ database ownership riêng cho từng service
-- chuẩn hóa event contract và outbox pattern
-- xây được các vertical slice có test trước khi làm hạ tầng runtime hoàn chỉnh
+## What To Look At First
 
-Repo này chưa cố gắng hoàn thiện deployment production ngay lập tức.
+Nếu bạn muốn hiểu repo theo đúng thứ tự, đi như này:
 
-## Bức Tranh Tổng Quan
+1. `docs/overview.md` — repo map, service map, integration model.
+2. `docs/architecture/conventions.md` — luật chơi khi thêm code mới.
+3. `02-core-flows.md` — các flow business chạy xuyên services.
+4. `04-data-and-integration-map.md` — ai own data gì, produce/consume event gì.
 
-Các service hiện có:
+## What This Repo Optimizes For
 
-- `api-gateway`: cửa vào HTTP chung
-- `identity-service`: đăng ký, đăng nhập, token, user identifiers/email, RBAC (roles, permissions, role assignments theo account)
-- `tenant-service`: account và membership
-- `subscription-service`: subscription theo account
-- `competition-service`: sport, match, participant, kết quả trận
-- `ranking-service`: ELO projection và query ranking
+Repo hiện ưu tiên:
 
-## Monorepo Layout
+- boundary rõ
+- event contract rõ
+- source architecture rõ
+- vertical slice có test
 
-```text
-build-logic/                 Gradle conventions dùng chung
-docs/contracts/asyncapi/     event contracts và examples
-docs/                        kiến trúc, contracts, onboarding, service notes
-gradle/libs.versions.toml    version catalog
-services/
-├── api-gateway/
-├── identity-service/
-├── tenant-service/
-├── subscription-service/
-├── competition-service/
-└── ranking-service/
-```
+Repo chưa tối ưu cho:
 
-## Nguyên Tắc Kiến Trúc Chính
+- production deployment hoàn chỉnh
+- observability đầy đủ
+- full platform automation
 
-- Mỗi service own schema, migration, entity, repository và test riêng.
-- Không share business entity hoặc repository giữa services.
-- Cross-service reference dùng `UUID`, không dùng JPA relation xuyên service.
-- HTTP chỉ dùng khi thật sự cần câu trả lời ngay.
-- Hướng tích hợp chính là event-driven với AsyncAPI contract.
-- Producer lưu outbox cùng local transaction.
-- Consumer phải idempotent.
+Điều này quan trọng vì khi bạn thấy chỗ nào còn thiếu runtime/platform, đó không nhất thiết là bug kiến trúc; nhiều phần đơn giản là chưa đến giai đoạn làm tiếp.
 
-## Cách Nhìn Repo Này Cho Đúng
+## After This File
 
-Đây chưa phải một hệ thống distributed hoàn chỉnh đang chạy full stack.
-
-Đây là một codebase đã:
-
-- chốt boundary
-- chốt shape của event
-- có service-local tests cho các flow chính
-- có gateway routing cơ bản
-
-Nhưng vẫn còn thiếu phần runtime integration như CI/CD và observability. Docker Compose hiện có Postgres, Redis, discovery-server và RabbitMQ.
-
-## Nên Đọc Gì Sau File Này
-
-- Đọc `02-core-flows.md` để hiểu các luồng business chính.
-- Đọc `03-domain-glossary.md` để không bị lẫn khái niệm.
-- Đọc `04-data-and-integration-map.md` để biết service nào own cái gì.
+- Đọc `02-core-flows.md` nếu bạn cần hiểu flow business.
+- Đọc `03-domain-glossary.md` nếu bạn chưa quen domain terms.
+- Đọc `../how-to/` nếu bạn sắp bắt đầu implement.

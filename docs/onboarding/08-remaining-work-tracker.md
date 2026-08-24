@@ -2,7 +2,7 @@
 
 # Remaining Work Tracker
 
-Trạng thái triển khai thực tế so với plan platform-core. Cập nhật khi có thay đổi; chi tiết theo từng mục xem `05-current-status-and-gaps.md`.
+File này là **checklist hành động còn mở**. Nếu bạn cần context tổng hợp về maturity/status của repo, xem `05-current-status-and-gaps.md`.
 
 ## Chưa OK — cần implement tiếp
 

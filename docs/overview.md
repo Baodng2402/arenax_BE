@@ -34,6 +34,7 @@ arenax-be/
 │   ├── architecture/            # Reference: conventions, boundaries, event-conventions...
 │   ├── contracts/               # Spec artifacts: AsyncAPI, OpenAPI, internal API, security
 │   ├── development/             # Reference: local dev, git/PR conventions, testing...
+│   ├── how-to/                  # Task-oriented guides for common implementation work
 │   ├── onboarding/              # Reference: system tour, core flows, glossary...
 │   ├── operations/              # Reference: security mesh
 │   ├── services/                # Reference: chi tiết từng service
@@ -97,21 +98,7 @@ competition: tạo sport/match → join → complete (ghi điểm)
         → GET /api/v1/rankings/users/{userId} (idempotent theo matchId)
 ```
 
-## 7. Identity service — cấu trúc nội bộ (sau cleanup)
-
-`com.bk.arenax.identity.service` — tách theo capability, không còn god-service:
-
-| Service | Trách nhiệm |
-|---|---|
-| `RegistrationService` | register, verifyEmail |
-| `AuthenticationService` | login, refresh, logout, logoutAll, refreshTokenTtlSeconds (cấp JWT, sở hữu `LoginResult`) |
-| `PasswordResetService` | requestPasswordReset, resetPassword |
-| `ProfileService` | getProfile, updateProfile |
-| `UserEmailService` | listEmails, updateUsername, clearUsername, addEmail, setPrimaryEmail, removeEmail |
-
-Helpers dùng chung trong `service/support/`: `IdentityTokenHasher`, `IdentityTokenGenerator`, `IdentityEventSerializer`, `EmailNormalizationService`.
-
-## 8. Local development path
+## 7. Local development path
 
 1. `docker compose up -d` — Postgres (5432), Redis (6379), discovery-server (8761), RabbitMQ. (Compose được Spring Boot auto-detect qua `spring-boot-docker-compose`.)
 2. `./gradlew test` — chạy toàn bộ test (integration-first, H2, relay/listener bị tắt trong test).
@@ -122,23 +109,35 @@ Helpers dùng chung trong `service/support/`: `IdentityTokenHasher`, `IdentityTo
    Persistence services **bắt buộc** profile `local` (nếu không: `Failed to configure a DataSource: 'url' attribute is not specified`).
 4. Gateway health check: `localhost:8080/actuator/health`; Eureka dashboard: `localhost:8761`.
 
-## 9. Docs map
+## 8. Docs map
 
 | Vai trò | Đường dẫn |
 |---|---|
 | **Canonical (đọc trước)** | `README.md` → `docs/overview.md` |
 | Reference — contracts/specs | `docs/contracts/asyncapi/arenax-events.yaml`, `docs/contracts/openapi/*.yaml`, `docs/contracts/internal-api/README.md`, `docs/contracts/security/*.md` |
 | Reference — conventions | `docs/architecture/conventions.md`, `service-boundaries.md`, `event-conventions.md` |
-| Reference — development | `docs/development/local-development.md`, `running-the-stack.md`, `git-and-pr-conventions.md`, `testing.md` |
+| Reference — development | `docs/development/README.md`, `local-development.md`, `running-the-stack.md`, `git-and-pr-conventions.md`, `testing.md` |
+| How-to — implementation tasks | `docs/how-to/add-a-shared-lib.md`, `add-a-new-event-flow.md`, `add-an-internal-http-call.md` |
 | Reference — services | `docs/services/identity.md` (có internal structure), `tenant.md`, `subscription.md`, `competition.md`, `ranking.md`, `api-gateway.md` |
 | Reference — onboarding | `docs/onboarding/01-system-tour.md` → `02-core-flows.md` → `03-domain-glossary.md` → `04-data-and-integration-map.md` |
 | Reference — operations | `docs/operations/service-mesh-security.md` |
+
+## 9. Deeper reading
+
+- Nếu bạn đang **mới vào repo**: đọc `docs/onboarding/README.md` rồi đi tiếp qua `01-system-tour.md` và `02-core-flows.md`.
+- Nếu bạn đang **chuẩn bị code**: đọc `docs/architecture/conventions.md` trước, sau đó chọn file phù hợp trong `docs/how-to/`.
+- Nếu bạn đang **chạm vào một service cụ thể**: đọc thêm `docs/services/<service>.md`.
 
 ## 10. Current status & gaps
 
 **Đã có:** monorepo theo boundary; hợp đồng AsyncAPI; RSA JWT kèm claims roles/permissions; onboarding + ranking flow chạy ở mức source/test; REST tenant/subscription qua gateway trusted headers; OpenAPI cho identity/tenant/subscription; outbox relay dùng chung qua `libs/messaging-foundation`.
 
 **Chưa có (ưu tiên tiếp theo):** CI/CD + deploy; messaging runtime (retry/DLQ/inbox); consumer gửi email thật (verification/password-reset); route gateway + OpenAPI cho competition/ranking; validate `account_id` qua tenant membership; service-to-service auth; observability (logging/tracing/metrics); Redis chưa dùng.
+
+Xem chi tiết hơn tại:
+
+- `docs/onboarding/05-current-status-and-gaps.md` cho trạng thái tổng hợp
+- `docs/onboarding/08-remaining-work-tracker.md` cho checklist hành động còn mở
 
 ## 11. Glossary (ngắn)
 

@@ -1,126 +1,64 @@
-> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+> **Reference** — file này giải thích local runtime stack chi tiết hơn. Nếu bạn chỉ cần quickstart, bắt đầu từ [local-development.md](./local-development.md).
 
 # Running The Stack Locally
 
-Tài liệu này hướng dẫn chi tiết cách chạy hệ thống microservices Arenax-BE trên môi trường local, tận dụng **Docker Compose**, **Spring Boot Docker Compose Integration**, và cấu trúc multi-module mới.
+File này tập trung vào local runtime stack: Docker services nào cần có, chúng dùng để làm gì, và kiểm tra health ra sao.
 
----
+## 1. Runtime Components
 
-## 1. Tổng Quan Kiến Trúc Local Runtime
+`compose.yaml` hiện định nghĩa các thành phần local sau:
 
-Hệ thống hiện tại bao gồm:
-- **`discovery-server`** (Eureka Server): Cổng Service Discovery (port `8761`).
-- **`api-gateway`**: API Gateway định tuyến request (port `8080`).
-- **`identity-service`**: Quản lý Authentication (JWT) và RBAC (đã hợp nhất access-service).
-- **`tenant-service`**, **`subscription-service`**, **`competition-service`**, **`ranking-service`**: Các service nghiệp vụ.
-- **PostgreSQL & Redis**: Infrastructure cơ sở dữ liệu và cache.
+- `postgres` on `5432`
+- `redis` on `6379`
+- `discovery-server` on `8761`
+- `rabbitmq` on `5672` and `15672`
 
-Nhờ cấu hình **`spring-boot-docker-compose`** ở root, khi bạn chạy bất kỳ service nào (`bootRun`), Spring Boot sẽ **tự động kiểm tra và khởi chạy các container (Postgres, Redis, Eureka) từ `compose.yaml`** ở root project nếu chúng chưa chạy. Nếu đã chạy, Spring Boot sẽ tự động kết nối mà không làm gián đoạn.
+Business services (`identity-service`, `tenant-service`, `subscription-service`, `competition-service`, `ranking-service`) được chạy riêng bằng Gradle `bootRun`, không nằm trong `compose.yaml`.
 
----
+## 2. Start Infra
 
-## 2. Bước 1: Kiểm Tra Build & Tests
+Trước khi chạy persistence services hoặc event-driven flows, start local infra:
 
-Trước khi chạy runtime, hãy đảm bảo toàn bộ project compile và test thành công:
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Postgres được khởi tạo với:
+
+- user: `postgres`
+- password: `12345`
+
+Các database service-level được tạo từ `docker/postgres/init-databases.sql`.
+
+## 3. Optional Verification
+
+Nếu bạn muốn verify code trước khi start runtime:
 
 ```bash
 ./gradlew test
 ```
 
----
-
-## 3. Bước 2: Khởi Chạy Hạ Tầng (Docker Compose)
-
-Bạn có thể để Spring Boot tự động bật hạ tầng khi chạy service, hoặc chủ động khởi chạy trước toàn bộ hạ tầng bằng Docker Compose:
-
-```bash
-docker compose up -d
-```
-
-Lệnh này sẽ khởi động:
-- **Postgres** (port `5432`, tự động tạo các database cần thiết qua init script).
-- **Redis** (port `6379`).
-- **Discovery Server (Eureka)** (port `8761`).
-
-Kiểm tra trạng thái container:
-```bash
-docker compose ps
-```
-
----
-
-## 4. Bước 3: Chạy Các Service
-
-Bạn có thể chạy service thông qua Gradle CLI với profile `local`:
-
-### 4.1. Chạy Identity Service (Authentication & RBAC)
-```bash
-./gradlew :services:identity-service:bootRun --args='--spring.profiles.active=local'
-```
-
-### 4.2. Chạy API Gateway
-```bash
-./gradlew :services:api-gateway:bootRun --args='--spring.profiles.active=local'
-```
-
-### 4.3. Chạy Các Service Nghiệp Vụ Khác
-- **Tenant Service:**
-  ```bash
-  ./gradlew :services:tenant-service:bootRun --args='--spring.profiles.active=local'
-  ```
-- **Subscription Service:**
-  ```bash
-  ./gradlew :services:subscription-service:bootRun --args='--spring.profiles.active=local'
-  ```
-- **Competition Service:**
-  ```bash
-  ./gradlew :services:competition-service:bootRun --args='--spring.profiles.active=local'
-  ```
-- **Ranking Service:**
-  ```bash
-  ./gradlew :services:ranking-service:bootRun --args='--spring.profiles.active=local'
-  ```
-
----
-
-## 5. Chạy Bằng IDE (IntelliJ IDEA)
-
-1. Mở project trong IntelliJ IDEA.
-2. Đảm bảo Gradle đã sync thành công.
-3. Tìm đến class `*Application` của service muốn chạy (ví dụ: `com.bk.arenax.identity.IdentityServiceApplication`).
-4. Tạo Run Configuration:
-   - **Main class:** `com.bk.arenax.identity.IdentityServiceApplication`
-   - **Active profiles:** `local`
-   - **Environment variables:** (nếu cần override DB/Redis)
-5. Nhấn **Run**. Spring Boot sẽ tự động kết nối với các container Docker đang chạy.
-
----
-
-## 6. Kiểm Tra Sau Khi Khởi Chạy
+## 4. Smoke Checks
 
 - **Eureka Dashboard:** [http://localhost:8761](http://localhost:8761) (Xem các service đăng ký).
+- **RabbitMQ Management:** [http://localhost:15672](http://localhost:15672)
 - **API Gateway Health:**
   ```bash
   curl http://localhost:8080/actuator/health
   ```
-- **Identity Service Register Flow:**
-  ```bash
-  curl -X POST http://localhost:8080/api/v1/auth/register \
-    -H 'Content-Type: application/json' \
-    -d '{
-      "email":"user1@example.com",
-      "password":"secret123",
-      "displayName":"User One"
-    }'
-  ```
 
----
-
-## 7. Troubleshooting Nhanh
+## 5. Troubleshooting
 
 - **Lỗi `Task 'bootRun' not found in root project`:**
   Root project không phải là Spring Boot app. Hãy chạy chỉ định đúng module, ví dụ: `./gradlew :services:api-gateway:bootRun`.
 - **Lỗi kết nối database:**
-  Đảm bảo `docker compose up -d` đang chạy và các database đã được khởi tạo qua init script.
+  Đảm bảo `docker compose up -d` đang chạy, password local đúng với `compose.yaml`, và database đã được khởi tạo qua init script.
 - **Lỗi Eureka Connection Refused:**
   Đảm bảo `discovery-server` đã healthy (port `8761`) trước khi boot các service con.
+
+## 6. Read Next
+
+- `running-services.md` nếu bạn muốn run từng service
+- `intellij-setup.md` nếu bạn muốn làm việc qua IntelliJ
+- `testing.md` nếu bạn muốn verify nhanh trước khi push

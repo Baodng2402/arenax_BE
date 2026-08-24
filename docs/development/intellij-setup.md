@@ -1,4 +1,4 @@
-> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+> **Reference** — file này dành cho IntelliJ workflow. Nếu bạn chỉ cần lệnh chạy local, bắt đầu từ [local-development.md](./local-development.md).
 
 # IntelliJ Setup
 
@@ -224,7 +224,7 @@ Debug một service business qua entry HTTP:
 - `api-gateway`
 - service business bạn đang sửa
 
-## 12. Khi Nào Dùng IDE, Khi Nào Dùng Script
+## 12. Khi Nào Dùng IDE, Khi Nào Dùng CLI
 
 Dùng IDE khi:
 
@@ -232,11 +232,11 @@ Dùng IDE khi:
 - bạn muốn quan sát log riêng cho từng service
 - bạn muốn chạy 2-3 service và restart từng cái độc lập
 
-Dùng script (`bin/run-service`, `bin/run-local-stack`) khi:
+Dùng CLI (`./gradlew :services:<service>:bootRun`, `docker compose ...`) khi:
 
 - bạn chỉ cần bật nhanh service
 - bạn không cần debug từng line
-- bạn muốn start background rồi làm việc khác
+- bạn muốn copy-paste command rõ ràng cho teammate
 
 ## 13. Lộ Trình Làm Quen Cho Teammate Mới
 
@@ -254,4 +254,5 @@ Lý do là flow competition/ranking hiện dễ nhìn hơn, ít dependency nhậ
 - `docs/development/local-development.md`
 - `docs/development/running-services.md`
 - `docs/development/running-the-stack.md`
+- `docs/development/README.md`
 - `docs/onboarding/README.md`

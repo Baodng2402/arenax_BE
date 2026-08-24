@@ -54,8 +54,9 @@ If you are new to the codebase, start here:
 1. `docs/overview.md` for the canonical architecture and domain map
 2. `docs/architecture/` for repo conventions and service boundaries
 3. `docs/contracts/` for AsyncAPI, OpenAPI, internal API, and security specs
-4. `docs/development/` for local development and testing workflow
-5. `docs/services/` for service-specific notes
+4. `docs/how-to/` for task-oriented implementation guides
+5. `docs/development/` for local development and testing workflow
+6. `docs/services/` for service-specific notes
 
 ## Documentation Boundary
 

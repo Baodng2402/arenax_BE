@@ -2,6 +2,8 @@
 
 # 05. Current Status And Gaps
 
+File này là **snapshot tổng hợp**. Nếu bạn cần danh sách việc còn mở để hành động, xem `08-remaining-work-tracker.md`.
+
 ## Những Gì Đã Có
 
 - Monolith cũ đã được thay bằng microservice monorepo theo boundary rõ ràng.

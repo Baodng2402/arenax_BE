@@ -1,4 +1,4 @@
-> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+> **Reference** — file này dành cho việc chạy từng service cụ thể. Nếu bạn mới bắt đầu, đọc [local-development.md](./local-development.md) trước.
 
 # Running Individual Services
 
@@ -9,7 +9,8 @@ Tài liệu này chỉ tập trung vào một việc: chạy từng service sau 
 - Bạn vẫn dùng nút Start của IDE được.
 - Bạn không còn run từ root project như monolith cũ.
 - Bạn phải run đúng `*Application` class của từng service.
-- Hãy dùng Spring profile `local` để khỏi phải nhập datasource args dài mỗi lần.
+- Hãy dùng Spring profile `local` cho các persistence service.
+- Helper scripts kiểu `bin/run-service` hiện không còn trong repo; dùng Gradle trực tiếp.
 
 ## 2. Profile Local Hoạt Động Thế Nào
 
@@ -49,21 +50,7 @@ ARENAX_IDENTITY_DB=arenax_identity
 
 ## 3. Chạy Service Bằng CLI
 
-### Cách ngắn nhất
-
-```bash
-bin/run-service gateway
-bin/run-service identity
-bin/run-service competition
-```
-
-Script này tự thêm:
-
-```text
---spring.profiles.active=local
-```
-
-### Cách Gradle trực tiếp
+Chạy trực tiếp bằng Gradle:
 
 ```bash
 ./gradlew :services:api-gateway:bootRun --args='--spring.profiles.active=local'
@@ -106,35 +93,21 @@ Khi chạy với profile `local`, port mặc định là:
 
 ## 6. Step-By-Step Setup Cho Người Mới
 
-### Bước 1: Dựng PostgreSQL
+### Bước 1: Dựng Infra Chuẩn Của Repo
 
-Nếu chưa có PostgreSQL local, chạy nhanh bằng Docker:
-
-```bash
-docker run --name arenax-postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 \
-  -d postgres:16
-```
-
-> ⚠️ Nếu dùng `compose.yaml` ở root (`docker compose up -d`) thì password là **`12345`**, khác default `postgres`. Lúc đó phải export trước khi chạy service:
->
-> ```bash
-> export ARENAX_DB_PASSWORD=12345
-> ```
->
-> `compose.yaml` mount `docker/postgres/init-databases.sql` nên các DB dưới sẽ được tạo tự động.
-
-### Bước 2: Tạo Database
+Ưu tiên dùng `compose.yaml` ở root:
 
 ```bash
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_identity;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_tenant;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_subscription;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_competition;"
-docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_ranking;"
+docker compose up -d
 ```
+
+Nếu bạn dùng local profile mặc định của services, hãy nhớ override password DB vì `compose.yaml` dùng `12345` thay vì `postgres`:
+
+```bash
+export ARENAX_DB_PASSWORD=12345
+```
+
+`compose.yaml` đã mount `docker/postgres/init-databases.sql`, nên database cần thiết được tạo tự động.
 
 ### Bước 3: Chạy Test Trước
 
@@ -148,20 +121,7 @@ docker exec -it arenax-postgres psql -U postgres -c "CREATE DATABASE arenax_rank
 
 Test thì vẫn chạy được ngay vì test dùng key fixture riêng trong `src/test/resources`, nhưng nếu bạn muốn chạy `identity-service` hoặc `api-gateway` local thật thì cần tự chuẩn bị 1 cặp RSA PEM.
 
-Cách nhanh nhất — script sinh key sẵn (đúng format PKCS#8, không ghi đè key cũ):
-
-```bash
-bin/generate-jwt-keys.sh
-```
-
-Script này tạo:
-
-```text
-secrets/identity-private.pem  (PKCS#8 — "BEGIN PRIVATE KEY")
-secrets/identity-public.pem   (X.509 — "BEGIN PUBLIC KEY")
-```
-
-Nếu muốn tự chạy `openssl` thì phải dùng đúng format sau:
+Repo hiện không có helper script cho bước này, nên dùng `openssl` trực tiếp:
 
 ```bash
 mkdir -p secrets
@@ -207,12 +167,6 @@ Nghĩa là local flow chuẩn sẽ là:
 Nếu chạy gateway local mà không muốn bật discovery-server, hoặc chạy các service không đăng ký Eureka, override route sang URL trực tiếp khi start:
 
 ```bash
-bin/run-service gateway --arenax.gateway.routes.identity-service=http://localhost:8081
-```
-
-Hoặc Gradle trực tiếp:
-
-```bash
 ./gradlew :services:api-gateway:bootRun \
   --args='--spring.profiles.active=local --arenax.gateway.routes.identity-service=http://localhost:8081'
 ```
@@ -224,8 +178,8 @@ Các route mới hơn có thể override tương tự: `--arenax.gateway.routes.
 Ví dụ:
 
 ```bash
-bin/run-service identity
-bin/run-service competition
+./gradlew :services:identity-service:bootRun --args='--spring.profiles.active=local'
+./gradlew :services:competition-service:bootRun --args='--spring.profiles.active=local'
 ```
 
 Hoặc bấm Start trong IDE với profile `local`.
@@ -265,7 +219,7 @@ curl -b /tmp/cookies.txt -X POST localhost:8080/api/v1/auth/refresh
 
 Chú ý: user **chưa verify email (PENDING)** sẽ bị chặn login với **401** — chỉ email identifier đã verify mới đăng nhập được. User **SUSPENDED/DEACTIVATED** sẽ bị chặn với 403.
 
-## 7. Khi Nào Dùng Script, Khi Nào Dùng IDE
+## 7. Khi Nào Dùng CLI, Khi Nào Dùng IDE
 
 ### Dùng IDE khi:
 
@@ -274,31 +228,25 @@ Chú ý: user **chưa verify email (PENDING)** sẽ bị chặn login với **40
 - bạn đang sửa controller/service/repository của một module
 - bạn muốn chạy 2-3 service song song bằng nhiều Run Configuration hoặc Compound configuration
 
-### Dùng CLI script khi:
+### Dùng CLI khi:
 
 - bạn muốn bật nhanh service để smoke test
-- bạn muốn copy-paste command ngắn cho người khác
-- bạn muốn start nhiều service bằng background script
+- bạn muốn copy-paste command rõ ràng cho người khác
+- bạn không cần breakpoint
 
 ## 8. Start Nhiều Service Cùng Lúc
 
-```bash
-bin/run-local-stack start
-bin/run-local-stack status
-bin/run-local-stack stop
-```
+Hiện repo không có helper script để orchestration nhiều service cùng lúc. Cách ổn định nhất là:
 
-Logs nằm ở:
-
-```text
-.local/run/
-```
+- dùng nhiều terminal tab để chạy nhiều `bootRun`
+- hoặc dùng nhiều IntelliJ Run Configuration / Compound configuration
+- giữ `docker compose up -d` cho infra dùng chung
 
 ## 9. Lỗi Thường Gặp
 
 ### `Task 'bootRun' not found in root project`
 
-Bạn đang run ở root như monolith cũ. Hãy run subproject cụ thể hoặc dùng `bin/run-service`.
+Bạn đang run ở root như monolith cũ. Hãy run subproject cụ thể.
 
 ### `Failed to configure a DataSource`
 
