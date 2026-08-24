@@ -4,21 +4,26 @@
 
 ## Branch Naming
 
+Format chuẩn: `<type>/<JIRA-KEY>-<topic>`
+
 - Dùng tên ngắn, rõ mục tiêu, viết thường, nối bằng dấu gạch ngang nếu cần.
+- Luôn gắn Jira issue key (`KAN-<số>`) ngay sau prefix — đây là thứ Jira dùng để link PR với ticket (xem `Jira Integration` bên dưới).
 - Prefix chuẩn:
-  - Feature: `feat/<topic>`
-  - Bug fix: `fix/<topic>`
-  - Refactor: `refactor/<topic>`
-  - Docs only: `docs/<topic>`
-  - Chore/build tooling: `chore/<topic>`
+  - Feature: `feat/<JIRA-KEY>-<topic>`
+  - Bug fix: `fix/<JIRA-KEY>-<topic>`
+  - Refactor: `refactor/<JIRA-KEY>-<topic>`
+  - Docs only: `docs/<JIRA-KEY>-<topic>`
+  - Chore/build tooling: `chore/<JIRA-KEY>-<topic>`
 - Chọn topic theo business slice hoặc kỹ thuật cụ thể, không đặt tên mơ hồ như `update`, `misc`, `temp`.
 
 Ví dụ:
 
-- `feat/full-microservices-migration`
-- `feat/competition-complete-match`
-- `fix/identity-login-projection`
-- `docs/git-and-pr-conventions`
+- `feat/KAN-7-email-sender-consumer`
+- `feat/KAN-11-gateway-ranking-route`
+- `fix/KAN-10-validate-account-id`
+- `docs/KAN-17-pr-convention`
+
+Nếu công việc thực sự không có ticket (hotfix gấp, chore vặt), vẫn giữ format cũ `<type>/<topic>` nhưng ghi rõ lý do trong PR — trường hợp này ticket sẽ không tự chuyển trạng thái.
 
 ## Branch Workflow
 
@@ -46,6 +51,8 @@ Ví dụ tốt:
 
 Khi sửa nhỏ hoặc docs-only, có thể dùng câu ngắn hơn nếu vẫn rõ nghĩa, nhưng vẫn nên giữ cùng tinh thần trên.
 
+Nếu branch đã mang Jira key thì commit message không bắt buộc lặp lại key. Chỉ thêm key vào commit (`feat(identity): KAN-10 validate account id`) khi branch không có key hoặc khi một branch phục vụ nhiều ticket.
+
 Không dùng commit message mơ hồ như:
 
 - `update code`
@@ -63,11 +70,28 @@ Không dùng commit message mơ hồ như:
 
 Mỗi PR nên có:
 
+- Jira issue key trong title, ví dụ `KAN-17: bổ sung convention gắn issue key vào branch/PR`
 - mục tiêu thay đổi
 - service hoặc module bị ảnh hưởng
 - migration/event/API nào bị tác động
 - lệnh test đã chạy
 - ghi chú boundary rule nào cần reviewer chú ý
+
+## Jira Integration
+
+Repo đã kết nối với Jira project `KAN` (site `arenaxkb.atlassian.net`) qua app GitHub for Jira. Jira nhận diện ticket bằng cách quét issue key trong **branch name**, **PR title**, và **commit message**.
+
+Automation flow đang bật:
+
+| Sự kiện GitHub | Kết quả trên Jira |
+|---|---|
+| Mở pull request | Ticket chuyển sang `In Review` |
+
+Hệ quả thực tế:
+
+- Không có issue key ở đâu cả → PR không link được ticket, trạng thái không tự đổi, phải kéo tay trên board.
+- Đặt key ở branch name là chắc nhất vì Jira thấy ngay từ lúc push, không cần đợi mở PR.
+- Một PR có thể tham chiếu nhiều ticket bằng cách nêu các key trong commit message, nhưng nên giữ một PR một ticket cho dễ trace.
 
 ## Review Checklist
 
