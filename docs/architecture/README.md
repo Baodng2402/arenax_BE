@@ -1,3 +1,5 @@
+> **Architecture entrypoint** - đọc file này khi bạn cần rulebook và reading path cho boundary, messaging, internal HTTP, hoặc bootstrap service mới.
+
 # Architecture Guide
 
 `docs/architecture/` là nơi giữ các rule và reference về kiến trúc repo. Đây không phải chỗ để đọc toàn bộ repo từ đầu; hãy bắt đầu từ `README.md` rồi `docs/overview.md` trước.

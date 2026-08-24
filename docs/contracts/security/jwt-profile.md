@@ -1,3 +1,5 @@
+> **Reference spec** - đọc file này khi bạn thay đổi access-token shape, JWKS behavior, hoặc gateway JWT validation.
+
 # ArenaX JWT Profile
 
 ## Scope
@@ -51,3 +53,9 @@ After validation, Gateway removes inbound spoofable identity headers and injects
 - `X-Request-Id`
 
 Business services must trust these headers only on `/api/**` traffic that is guaranteed by infrastructure to originate from Gateway.
+
+## Read Next
+
+- `gateway-trust-boundary.md`
+- `../../services/identity.md`
+- `../../services/api-gateway.md`

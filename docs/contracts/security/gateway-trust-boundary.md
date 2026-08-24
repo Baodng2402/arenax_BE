@@ -1,3 +1,5 @@
+> **Reference spec** - đọc file này khi bạn thay đổi public ingress, trusted headers, hoặc gateway-to-service trust assumptions.
+
 # ArenaX Gateway Trust Boundary
 
 ## Public Entry Point
@@ -37,3 +39,9 @@ Business services must:
 
 - `compose.yaml` should expose only Gateway publicly by default.
 - Direct business service ports are temporary debugging exceptions and must be documented when used.
+
+## Read Next
+
+- `jwt-profile.md`
+- `../../services/api-gateway.md`
+- `../../operations/service-mesh-security.md`

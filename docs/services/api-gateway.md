@@ -26,6 +26,7 @@
 
 - acts as the single public HTTP entrypoint for the repo
 - current routed areas include auth/users, accounts, subscriptions, sports, and matches
+- ranking route is not enabled yet in the shared default configuration
 
 ## Implementation Notes
 

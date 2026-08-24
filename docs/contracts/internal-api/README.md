@@ -1,3 +1,5 @@
+> **Reference spec** - đọc file này khi bạn sắp thêm hoặc review internal synchronous HTTP giữa services.
+
 # ArenaX Internal HTTP API Rules
 
 Internal service-to-service HTTP is for narrow orchestration cases only.
@@ -28,3 +30,8 @@ Internal service-to-service HTTP is for narrow orchestration cases only.
 - Default timeouts: connect 500ms, read 2000ms.
 - Default retry policy: no automatic retries for non-idempotent operations.
 - Errors should map to stable business-facing categories, not transport stack traces.
+
+## Read Next
+
+- `../../architecture/openfeign-conventions.md`
+- `../../how-to/add-an-internal-http-call.md`

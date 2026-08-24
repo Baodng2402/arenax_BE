@@ -23,7 +23,8 @@
 
 ## Public API
 
-- `GET /api/v1/rankings/users/{userId}`
+- Service hiện có `GET /api/v1/rankings/users/{userId}`.
+- Gateway route cho ranking chưa được bật trong default shared workflow hiện tại, nên endpoint này chưa đi qua public entrypoint chuẩn của repo.
 
 ## Implementation Notes
 

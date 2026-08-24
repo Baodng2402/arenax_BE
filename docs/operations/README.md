@@ -1,3 +1,5 @@
+> **Operations entrypoint** - đọc file này khi bạn cần production-oriented infra policy, không phải local dev workflow.
+
 # Operations Guide
 
 `docs/operations/` là chỗ cho production-oriented vận hành và infrastructure policy. Đây không phải nơi để đọc local development hay implementation flow.

@@ -1,4 +1,4 @@
-> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+> **Historical context** — File này giải thích các trade-off dẫn đến repo shape hiện tại. Nó không thay `docs/overview.md` hay `docs/architecture/conventions.md`.
 
 # 07. Architecture Decisions
 

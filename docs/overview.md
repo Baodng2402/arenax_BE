@@ -114,7 +114,7 @@ competition: tạo sport/match → join → complete (ghi điểm)
 | Vai trò | Đường dẫn |
 |---|---|
 | **Canonical (đọc trước)** | `README.md` → `docs/overview.md` |
-| Reference — contracts/specs | `docs/contracts/asyncapi/arenax-events.yaml`, `docs/contracts/openapi/*.yaml`, `docs/contracts/internal-api/README.md`, `docs/contracts/security/*.md` |
+| Reference — contracts/specs | `docs/contracts/README.md`, `asyncapi/arenax-events.yaml`, `openapi/*.yaml`, `internal-api/README.md`, `security/*.md` |
 | Reference — conventions | `docs/architecture/README.md`, `conventions.md`, `service-boundaries.md`, `openfeign-conventions.md` |
 | Reference — development | `docs/development/README.md`, `local-development.md`, `running-the-stack.md`, `git-and-pr-conventions.md`, `testing.md` |
 | How-to — implementation tasks | `docs/how-to/add-a-shared-lib.md`, `add-a-new-event-flow.md`, `add-an-internal-http-call.md` |
@@ -126,6 +126,7 @@ competition: tạo sport/match → join → complete (ghi điểm)
 
 - Nếu bạn đang **mới vào repo**: đọc `docs/onboarding/README.md` rồi đi tiếp qua `01-system-tour.md` và `02-core-flows.md`.
 - Nếu bạn đang **chuẩn bị code**: đọc `docs/architecture/README.md` trước, rồi vào `conventions.md` và file phù hợp trong `docs/how-to/`.
+- Nếu bạn đang **đổi contract/spec**: đọc `docs/contracts/README.md` trước, rồi vào AsyncAPI, OpenAPI, hoặc security doc phù hợp.
 - Nếu bạn đang **chạm vào một service cụ thể**: đọc `docs/services/README.md`, rồi vào `docs/services/<service>.md`.
 
 ## 10. Current status & gaps

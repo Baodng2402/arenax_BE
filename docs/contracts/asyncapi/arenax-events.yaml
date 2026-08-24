@@ -9,11 +9,6 @@ channels:
     messages:
       userRegistered:
         $ref: '#/components/messages/UserRegisteredV2'
-  identity.user.profile-updated:
-    address: identity.user.profile-updated.v1
-    messages:
-      userProfileUpdated:
-        $ref: '#/components/messages/UserProfileUpdatedV1'
   identity.user.verification-requested:
     address: identity.user.verification-requested.v1
     messages:
@@ -81,17 +76,6 @@ components:
         payload:
           type: object
     UserRegisteredPayload:
-      type: object
-      required:
-        - userId
-        - displayName
-      properties:
-        userId:
-          type: string
-          format: uuid
-        displayName:
-          type: string
-    UserProfileUpdatedPayload:
       type: object
       required:
         - userId
@@ -233,14 +217,6 @@ components:
             properties:
               payload:
                 $ref: '#/components/schemas/UserRegisteredPayload'
-    UserProfileUpdatedV1:
-      payload:
-        allOf:
-          - $ref: '#/components/schemas/EventEnvelope'
-          - type: object
-            properties:
-              payload:
-                $ref: '#/components/schemas/UserProfileUpdatedPayload'
     UserVerificationRequestedV1:
       payload:
         allOf:

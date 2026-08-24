@@ -32,8 +32,12 @@ Chào mừng bạn đến với ArenaX Backend. Folder `docs/onboarding/` không
 - `05-current-status-and-gaps.md` — snapshot tổng hợp
 - `08-remaining-work-tracker.md` — checklist hành động còn mở
 
+### Nếu bạn muốn hiểu quyết định lịch sử
+
+- `07-architecture-decisions.md` — background context cho các trade-off lớn của phase hiện tại
+
 ## Notes
 
 - `docs/overview.md` là overview canonical; nếu onboarding doc nào lệch thì lấy `docs/overview.md` làm chuẩn.
-- `docs/contracts/` chứa contract/spec artifacts; không phải runtime module.
+- `docs/contracts/README.md` là entrypoint cho contract/spec artifacts; các file trong đó không phải runtime module.
 - `docs/services/README.md` là entrypoint cho deep-dive theo từng service khi bạn đã biết mình sẽ chạm vào module nào.

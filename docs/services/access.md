@@ -1,4 +1,4 @@
-> **Tài liệu tham khảo** — File này là reference chi tiết. Bắt đầu đọc từ [README](../../README.md) → [docs/overview.md](../overview.md).
+> **Historical tombstone** — `access-service` không còn tồn tại như module riêng. File này chỉ giữ đường dẫn cũ trỏ về service hiện tại.
 
 # Access Service
 

@@ -1,3 +1,5 @@
+> **Services entrypoint** - đọc file này khi bạn đã biết module mình sắp sửa, nhưng cần deep-dive nhanh theo đúng khung thông tin.
+
 # Service Notes Guide
 
 `docs/services/` là chỗ deep-dive theo từng service sau khi bạn đã biết mình sẽ sửa module nào.

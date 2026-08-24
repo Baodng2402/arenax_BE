@@ -21,7 +21,6 @@
 
 - creates one `FREE` subscription per account
 - emits `subscription.activated.v1`
-
 - `subscription.activated.v1`
 - `subscription.changed.v1`
 - `subscription.cancelled.v1`
@@ -38,6 +37,7 @@ Via gateway under `/api/v1`:
 
 - Subscription state is account-scoped, not user-scoped.
 - Entitlements are derived from the stored plan when responses are built.
+- `subscription.changed.v1` và `subscription.cancelled.v1` hiện được phát từ public REST actions đổi plan hoặc hủy gói.
 
 ## Read Next
 
