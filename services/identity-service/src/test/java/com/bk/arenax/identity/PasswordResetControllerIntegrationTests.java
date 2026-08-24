@@ -6,6 +6,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import jakarta.servlet.http.Cookie;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
 import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.PasswordResetToken;
 import com.bk.arenax.identity.domain.RefreshSession;
@@ -18,365 +41,419 @@ import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.Cookie;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class PasswordResetControllerIntegrationTests {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+  @Autowired private AuthenticationManager authenticationManager;
 
-    @Autowired
-    private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private EmailVerificationTokenRepository emailVerificationTokenRepository;
+  @Autowired private EmailVerificationTokenRepository emailVerificationTokenRepository;
 
-    @Autowired
-    private PasswordResetTokenRepository passwordResetTokenRepository;
+  @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
 
-    @Autowired
-    private OutboxEventRepository outboxEventRepository;
+  @Autowired private OutboxEventRepository outboxEventRepository;
 
-    @Autowired
-    private RefreshSessionRepository refreshSessionRepository;
+  @Autowired private RefreshSessionRepository refreshSessionRepository;
 
-    @Autowired
-    private UserIdentifierRepository userIdentifierRepository;
+  @Autowired private UserIdentifierRepository userIdentifierRepository;
 
-    @BeforeEach
-    void setUp() {
-        outboxEventRepository.deleteAll();
-        refreshSessionRepository.deleteAll();
-        passwordResetTokenRepository.deleteAll();
-        emailVerificationTokenRepository.deleteAll();
-        userIdentifierRepository.deleteAll();
-        userRepository.deleteAll();
-    }
+  @BeforeEach
+  void setUp() {
+    outboxEventRepository.deleteAll();
+    refreshSessionRepository.deleteAll();
+    passwordResetTokenRepository.deleteAll();
+    emailVerificationTokenRepository.deleteAll();
+    userIdentifierRepository.deleteAll();
+    userRepository.deleteAll();
+  }
 
-    @Test
-    void requestPasswordResetReturnsAcceptedAndStoresConfidentialResetTokenForExistingUser() throws Exception {
-        UUID userId = registerAndVerifyUser();
+  @Test
+  void requestPasswordResetReturnsAcceptedAndStoresConfidentialResetTokenForExistingUser()
+      throws Exception {
+    UUID userId = registerAndVerifyUser();
 
-        mockMvc.perform(post("/api/v1/auth/request-password-reset")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/request-password-reset")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "player1@arenax.dev"
                                 }
                                 """))
-                .andExpect(status().isAccepted());
+        .andExpect(status().isAccepted());
 
-        List<PasswordResetToken> resetTokens = passwordResetTokenRepository.findAll();
-        List<OutboxEvent> outboxEvents = outboxEventRepository.findAll();
+    List<PasswordResetToken> resetTokens = passwordResetTokenRepository.findAll();
+    List<OutboxEvent> outboxEvents = outboxEventRepository.findAll();
 
-        assertThat(resetTokens).hasSize(1);
-        assertThat(resetTokens.getFirst().getUserId()).isEqualTo(userId);
-        assertThat(resetTokens.getFirst().getTokenHash()).isNotBlank();
-        assertThat(resetTokens.getFirst().getExpiresAt()).isNotNull();
-        assertThat(outboxEvents).extracting(OutboxEvent::getEventType)
-                .contains("identity.user.password-reset-requested.v1");
+    assertThat(resetTokens).hasSize(1);
+    assertThat(resetTokens.getFirst().getUserId()).isEqualTo(userId);
+    assertThat(resetTokens.getFirst().getTokenHash()).isNotBlank();
+    assertThat(resetTokens.getFirst().getExpiresAt()).isNotNull();
+    assertThat(outboxEvents)
+        .extracting(OutboxEvent::getEventType)
+        .contains("identity.user.password-reset-requested.v1");
 
-        OutboxEvent resetEvent = outboxEvents.stream()
-                .filter(event -> event.getEventType().equals("identity.user.password-reset-requested.v1"))
-                .findFirst()
-                .orElseThrow();
-        JsonNode payload = objectMapper.readTree(resetEvent.getPayload()).path("payload");
-        assertThat(payload.path("userId").asText()).isEqualTo(userId.toString());
-        assertThat(payload.path("email").asText()).isEqualTo("player1@arenax.dev");
-        assertThat(payload.path("displayName").asText()).isEqualTo("Player One");
-        assertThat(payload.path("resetToken").asText()).isNotBlank();
-        assertThat(payload.path("resetToken").asText()).isNotEqualTo(resetTokens.getFirst().getTokenHash());
-        assertThat(payload.path("expiresAt").asText()).isNotBlank();
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventId").asText()).isNotBlank();
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventType").asText()).isEqualTo("identity.user.password-reset-requested.v1");
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventVersion").asInt()).isEqualTo(1);
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("occurredAt").asText()).isNotBlank();
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("producer").asText()).isEqualTo("identity-service");
-    }
+    OutboxEvent resetEvent =
+        outboxEvents.stream()
+            .filter(
+                event -> event.getEventType().equals("identity.user.password-reset-requested.v1"))
+            .findFirst()
+            .orElseThrow();
+    JsonNode payload = objectMapper.readTree(resetEvent.getPayload()).path("payload");
+    assertThat(payload.path("userId").asText()).isEqualTo(userId.toString());
+    assertThat(payload.path("email").asText()).isEqualTo("player1@arenax.dev");
+    assertThat(payload.path("displayName").asText()).isEqualTo("Player One");
+    assertThat(payload.path("resetToken").asText()).isNotBlank();
+    assertThat(payload.path("resetToken").asText())
+        .isNotEqualTo(resetTokens.getFirst().getTokenHash());
+    assertThat(payload.path("expiresAt").asText()).isNotBlank();
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventId").asText())
+        .isNotBlank();
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventType").asText())
+        .isEqualTo("identity.user.password-reset-requested.v1");
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventVersion").asInt())
+        .isEqualTo(1);
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("occurredAt").asText())
+        .isNotBlank();
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("producer").asText())
+        .isEqualTo("identity-service");
+  }
 
-    @Test
-    void requestPasswordResetReturnsAcceptedWithoutLeakingUnknownEmail() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/request-password-reset")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+  @Test
+  void requestPasswordResetReturnsAcceptedWithoutLeakingUnknownEmail() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/auth/request-password-reset")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "missing@arenax.dev"
                                 }
                                 """))
-                .andExpect(status().isAccepted());
+        .andExpect(status().isAccepted());
 
-        assertThat(passwordResetTokenRepository.findAll()).isEmpty();
-        assertThat(outboxEventRepository.findAll()).isEmpty();
-    }
+    assertThat(passwordResetTokenRepository.findAll()).isEmpty();
+    assertThat(outboxEventRepository.findAll()).isEmpty();
+  }
 
-    @Test
-    void requestPasswordResetAcceptsVerifiedSecondaryEmail() throws Exception {
-        UUID userId = registerAndVerifyUser();
-        outboxEventRepository.deleteAll();
+  @Test
+  void requestPasswordResetAcceptsVerifiedSecondaryEmail() throws Exception {
+    UUID userId = registerAndVerifyUser();
+    outboxEventRepository.deleteAll();
 
-        mockMvc.perform(post("/api/v1/users/me/emails")
-                        .header("X-Arenax-User-Id", userId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/users/me/emails")
+                .header("X-Arenax-User-Id", userId.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "second@arenax.dev"
                                 }
                                 """))
-                .andExpect(status().isCreated());
+        .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/v1/auth/verify-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/verify-email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s"
                                 }
-                                """.formatted(extractToken("identity.user.verification-requested.v1", "verificationToken"))))
-                .andExpect(status().isNoContent());
+                                """
+                        .formatted(
+                            extractToken(
+                                "identity.user.verification-requested.v1", "verificationToken"))))
+        .andExpect(status().isNoContent());
 
-        outboxEventRepository.deleteAll();
+    outboxEventRepository.deleteAll();
 
-        mockMvc.perform(post("/api/v1/auth/request-password-reset")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/request-password-reset")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "second@arenax.dev"
                                 }
                                 """))
-                .andExpect(status().isAccepted());
+        .andExpect(status().isAccepted());
 
-        OutboxEvent resetEvent = outboxEventRepository.findAll().stream()
-                .filter(event -> event.getEventType().equals("identity.user.password-reset-requested.v1"))
-                .findFirst()
-                .orElseThrow();
-        JsonNode payload = objectMapper.readTree(resetEvent.getPayload()).path("payload");
-        assertThat(payload.path("email").asText()).isEqualTo("second@arenax.dev");
-        assertThat(payload.path("userId").asText()).isEqualTo(userId.toString());
-        assertThat(payload.path("displayName").asText()).isEqualTo("Player One");
-        assertThat(payload.path("resetToken").asText()).isNotBlank();
-        assertThat(payload.path("expiresAt").asText()).isNotBlank();
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventId").asText()).isNotBlank();
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventType").asText()).isEqualTo("identity.user.password-reset-requested.v1");
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventVersion").asInt()).isEqualTo(1);
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("occurredAt").asText()).isNotBlank();
-        assertThat(objectMapper.readTree(resetEvent.getPayload()).path("producer").asText()).isEqualTo("identity-service");
-    }
+    OutboxEvent resetEvent =
+        outboxEventRepository.findAll().stream()
+            .filter(
+                event -> event.getEventType().equals("identity.user.password-reset-requested.v1"))
+            .findFirst()
+            .orElseThrow();
+    JsonNode payload = objectMapper.readTree(resetEvent.getPayload()).path("payload");
+    assertThat(payload.path("email").asText()).isEqualTo("second@arenax.dev");
+    assertThat(payload.path("userId").asText()).isEqualTo(userId.toString());
+    assertThat(payload.path("displayName").asText()).isEqualTo("Player One");
+    assertThat(payload.path("resetToken").asText()).isNotBlank();
+    assertThat(payload.path("expiresAt").asText()).isNotBlank();
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventId").asText())
+        .isNotBlank();
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventType").asText())
+        .isEqualTo("identity.user.password-reset-requested.v1");
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("eventVersion").asInt())
+        .isEqualTo(1);
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("occurredAt").asText())
+        .isNotBlank();
+    assertThat(objectMapper.readTree(resetEvent.getPayload()).path("producer").asText())
+        .isEqualTo("identity-service");
+  }
 
-    @Test
-    void resetPasswordChangesPasswordRevokesSessionsAndConsumesToken() throws Exception {
-        UUID userId = registerAndVerifyUser();
-        Cookie refreshCookie = loginUser("player1@arenax.dev", "Sup3rSecret!");
+  @Test
+  void resetPasswordChangesPasswordRevokesSessionsAndConsumesToken() throws Exception {
+    UUID userId = registerAndVerifyUser();
+    Cookie refreshCookie = loginUser("player1@arenax.dev", "Sup3rSecret!");
 
-        mockMvc.perform(post("/api/v1/auth/request-password-reset")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/request-password-reset")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "player1@arenax.dev"
                                 }
                                 """))
-                .andExpect(status().isAccepted());
+        .andExpect(status().isAccepted());
 
-        String resetToken = extractToken("identity.user.password-reset-requested.v1", "resetToken");
+    String resetToken = extractToken("identity.user.password-reset-requested.v1", "resetToken");
 
-        mockMvc.perform(post("/api/v1/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s",
                                   "newPassword": "An0therSecret!"
                                 }
-                                """.formatted(resetToken)))
-                .andExpect(status().isNoContent())
-                .andExpect(cookie().value("arenax_refresh_token", ""))
-                .andExpect(cookie().maxAge("arenax_refresh_token", 0));
+                                """
+                        .formatted(resetToken)))
+        .andExpect(status().isNoContent())
+        .andExpect(cookie().value("arenax_refresh_token", ""))
+        .andExpect(cookie().maxAge("arenax_refresh_token", 0));
 
-        User user = userRepository.findById(userId).orElseThrow();
-        List<PasswordResetToken> resetTokens = passwordResetTokenRepository.findAll();
-        List<RefreshSession> refreshSessions = refreshSessionRepository.findAll();
+    User user = userRepository.findById(userId).orElseThrow();
+    List<PasswordResetToken> resetTokens = passwordResetTokenRepository.findAll();
+    List<RefreshSession> refreshSessions = refreshSessionRepository.findAll();
 
-        assertThat(user.getTokenVersion()).isEqualTo(1);
-        assertThat(user.getPasswordChangedAt()).isNotNull();
-        assertThat(resetTokens).hasSize(1);
-        assertThat(resetTokens.getFirst().getConsumedAt()).isNotNull();
-        assertThat(refreshSessions).hasSize(1);
-        assertThat(refreshSessions.getFirst().getRevokedAt()).isNotNull();
+    assertThat(user.getTokenVersion()).isEqualTo(1);
+    assertThat(user.getPasswordChangedAt()).isNotNull();
+    assertThat(resetTokens).hasSize(1);
+    assertThat(resetTokens.getFirst().getConsumedAt()).isNotNull();
+    assertThat(refreshSessions).hasSize(1);
+    assertThat(refreshSessions.getFirst().getRevokedAt()).isNotNull();
 
-        assertAuthenticates("player1@arenax.dev", "An0therSecret!");
-        assertRejectsAuthentication("player1@arenax.dev", "Sup3rSecret!");
-    }
+    assertAuthenticates("player1@arenax.dev", "An0therSecret!");
+    assertRejectsAuthentication("player1@arenax.dev", "Sup3rSecret!");
+  }
 
-    @Test
-    void resetPasswordRejectsUnknownTokenAsBadRequest() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+  @Test
+  void resetPasswordRejectsUnknownTokenAsBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "abcdefghijklmnopqrstuvwxyzABCDEF",
                                   "newPassword": "An0therSecret!"
                                 }
                                 """))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
-    }
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+  }
 
-    @Test
-    void resetPasswordRejectsConsumedTokenAsGone() throws Exception {
-        registerAndVerifyUser();
+  @Test
+  void resetPasswordRejectsConsumedTokenAsGone() throws Exception {
+    registerAndVerifyUser();
 
-        mockMvc.perform(post("/api/v1/auth/request-password-reset")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/request-password-reset")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "player1@arenax.dev"
                                 }
                                 """))
-                .andExpect(status().isAccepted());
+        .andExpect(status().isAccepted());
 
-        String resetToken = extractToken("identity.user.password-reset-requested.v1", "resetToken");
+    String resetToken = extractToken("identity.user.password-reset-requested.v1", "resetToken");
 
-        mockMvc.perform(post("/api/v1/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s",
                                   "newPassword": "An0therSecret!"
                                 }
-                                """.formatted(resetToken)))
-                .andExpect(status().isNoContent());
+                                """
+                        .formatted(resetToken)))
+        .andExpect(status().isNoContent());
 
-        mockMvc.perform(post("/api/v1/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s",
                                   "newPassword": "Th1rdSecret!"
                                 }
-                                """.formatted(resetToken)))
-                .andExpect(status().isGone())
-                .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
-    }
+                                """
+                        .formatted(resetToken)))
+        .andExpect(status().isGone())
+        .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
+  }
 
-    @Test
-    void resetPasswordRejectsExpiredTokenAsGone() throws Exception {
-        UUID userId = registerAndVerifyUser();
+  @Test
+  void resetPasswordRejectsExpiredTokenAsGone() throws Exception {
+    UUID userId = registerAndVerifyUser();
 
-        String rawToken = "expired-reset-token-value-0123456789abcdef";
-        passwordResetTokenRepository.save(PasswordResetToken.issue(
-                userId, hashToken(rawToken), Instant.now().minusSeconds(1)));
+    String rawToken = "expired-reset-token-value-0123456789abcdef";
+    passwordResetTokenRepository.save(
+        PasswordResetToken.issue(userId, hashToken(rawToken), Instant.now().minusSeconds(1)));
 
-        mockMvc.perform(post("/api/v1/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s",
                                   "newPassword": "An0therSecret!"
                                 }
-                                """.formatted(rawToken)))
-                .andExpect(status().isGone())
-                .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
-    }
+                                """
+                        .formatted(rawToken)))
+        .andExpect(status().isGone())
+        .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
+  }
 
-    private UUID registerAndVerifyUser() throws Exception {
-        MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+  private UUID registerAndVerifyUser() throws Exception {
+    MvcResult registerResult =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!",
                                   "fullName": "Player One"
                                 }
                                 """))
-                .andExpect(status().isCreated())
-                .andReturn();
+            .andExpect(status().isCreated())
+            .andReturn();
 
-        UUID userId = UUID.fromString(objectMapper.readTree(registerResult.getResponse().getContentAsString())
+    UUID userId =
+        UUID.fromString(
+            objectMapper
+                .readTree(registerResult.getResponse().getContentAsString())
                 .path("userId")
                 .asText());
 
-        mockMvc.perform(post("/api/v1/auth/verify-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/verify-email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s"
                                 }
-                                """.formatted(extractToken("identity.user.verification-requested.v1", "verificationToken"))))
-                .andExpect(status().isNoContent());
+                                """
+                        .formatted(
+                            extractToken(
+                                "identity.user.verification-requested.v1", "verificationToken"))))
+        .andExpect(status().isNoContent());
 
-        return userId;
-    }
+    return userId;
+  }
 
-    private Cookie loginUser(String email, String password) throws Exception {
-        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+  private Cookie loginUser(String email, String password) throws Exception {
+    MvcResult loginResult =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                                 {
                                   "email": "%s",
                                   "password": "%s"
                                 }
-                                """.formatted(email, password)))
-                .andExpect(status().isOk())
-                .andReturn();
+                                """
+                            .formatted(email, password)))
+            .andExpect(status().isOk())
+            .andReturn();
 
-        return loginResult.getResponse().getCookie("arenax_refresh_token");
-    }
+    return loginResult.getResponse().getCookie("arenax_refresh_token");
+  }
 
-    private String extractToken(String eventType, String tokenField) throws Exception {
-        OutboxEvent event = outboxEventRepository.findAll().stream()
-                .filter(candidate -> candidate.getEventType().equals(eventType))
-                .reduce((first, second) -> second)
-                .orElseThrow();
-        return objectMapper.readTree(event.getPayload()).path("payload").path(tokenField).asText();
-    }
+  private String extractToken(String eventType, String tokenField) throws Exception {
+    OutboxEvent event =
+        outboxEventRepository.findAll().stream()
+            .filter(candidate -> candidate.getEventType().equals(eventType))
+            .reduce((first, second) -> second)
+            .orElseThrow();
+    return objectMapper.readTree(event.getPayload()).path("payload").path(tokenField).asText();
+  }
 
-    private void assertAuthenticates(String email, String password) {
-        assertThat(authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, password)).isAuthenticated()).isTrue();
-    }
+  private void assertAuthenticates(String email, String password) {
+    assertThat(
+            authenticationManager
+                .authenticate(new UsernamePasswordAuthenticationToken(email, password))
+                .isAuthenticated())
+        .isTrue();
+  }
 
-    private void assertRejectsAuthentication(String email, String password) {
-        try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
-        } catch (BadCredentialsException exception) {
-            return;
-        } catch (AuthenticationException exception) {
-            return;
-        }
-        throw new AssertionError("Expected authentication to fail");
+  private void assertRejectsAuthentication(String email, String password) {
+    try {
+      authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+    } catch (BadCredentialsException exception) {
+      return;
+    } catch (AuthenticationException exception) {
+      return;
     }
+    throw new AssertionError("Expected authentication to fail");
+  }
 
-    private static String hashToken(String rawToken) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return Base64.getUrlEncoder().withoutPadding()
-                    .encodeToString(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 not available", exception);
-        }
+  private static String hashToken(String rawToken) {
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      return Base64.getUrlEncoder()
+          .withoutPadding()
+          .encodeToString(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+    } catch (NoSuchAlgorithmException exception) {
+      throw new IllegalStateException("SHA-256 not available", exception);
     }
+  }
 }

@@ -6,26 +6,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.bk.arenax.identity.domain.OutboxEvent;
-import com.bk.arenax.identity.domain.RefreshSession;
-import com.bk.arenax.identity.domain.Role;
-import com.bk.arenax.identity.domain.RoleAssignment;
-import com.bk.arenax.identity.domain.User;
-import com.bk.arenax.identity.domain.UserIdentifier;
-import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
-import com.bk.arenax.identity.repository.OutboxEventRepository;
-import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
-import com.bk.arenax.identity.repository.RefreshSessionRepository;
-import com.bk.arenax.identity.repository.RoleAssignmentRepository;
-import com.bk.arenax.identity.repository.RoleRepository;
-import com.bk.arenax.identity.repository.UserIdentifierRepository;
-import com.bk.arenax.identity.repository.UserRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,408 +22,468 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import com.bk.arenax.identity.domain.OutboxEvent;
+import com.bk.arenax.identity.domain.RefreshSession;
+import com.bk.arenax.identity.domain.Role;
+import com.bk.arenax.identity.domain.RoleAssignment;
+import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.repository.EmailVerificationTokenRepository;
+import com.bk.arenax.identity.repository.OutboxEventRepository;
+import com.bk.arenax.identity.repository.PasswordResetTokenRepository;
+import com.bk.arenax.identity.repository.RefreshSessionRepository;
+import com.bk.arenax.identity.repository.RoleAssignmentRepository;
+import com.bk.arenax.identity.repository.RoleRepository;
+import com.bk.arenax.identity.repository.UserIdentifierRepository;
+import com.bk.arenax.identity.repository.UserRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 class LoginControllerIntegrationTests {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private JwtDecoder jwtDecoder;
+  @Autowired private JwtDecoder jwtDecoder;
 
-    @Autowired
-    private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private EmailVerificationTokenRepository emailVerificationTokenRepository;
+  @Autowired private EmailVerificationTokenRepository emailVerificationTokenRepository;
 
-    @Autowired
-    private OutboxEventRepository outboxEventRepository;
+  @Autowired private OutboxEventRepository outboxEventRepository;
 
-    @Autowired
-    private RefreshSessionRepository refreshSessionRepository;
+  @Autowired private RefreshSessionRepository refreshSessionRepository;
 
-    @Autowired
-    private PasswordResetTokenRepository passwordResetTokenRepository;
+  @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
 
-    @Autowired
-    private UserIdentifierRepository userIdentifierRepository;
+  @Autowired private UserIdentifierRepository userIdentifierRepository;
 
-    @Autowired
-    private RoleRepository roleRepository;
+  @Autowired private RoleRepository roleRepository;
 
-    @Autowired
-    private RoleAssignmentRepository roleAssignmentRepository;
+  @Autowired private RoleAssignmentRepository roleAssignmentRepository;
 
-    @BeforeEach
-    void setUp() {
-        outboxEventRepository.deleteAll();
-        refreshSessionRepository.deleteAll();
-        passwordResetTokenRepository.deleteAll();
-        emailVerificationTokenRepository.deleteAll();
-        userIdentifierRepository.deleteAll();
-        roleAssignmentRepository.deleteAll();
-        roleRepository.deleteAll();
-        userRepository.deleteAll();
-    }
+  @BeforeEach
+  void setUp() {
+    outboxEventRepository.deleteAll();
+    refreshSessionRepository.deleteAll();
+    passwordResetTokenRepository.deleteAll();
+    emailVerificationTokenRepository.deleteAll();
+    userIdentifierRepository.deleteAll();
+    roleAssignmentRepository.deleteAll();
+    roleRepository.deleteAll();
+    userRepository.deleteAll();
+  }
 
-    @Test
-    void loginReturnsAccessTokenAndStoresRefreshSessionHash() throws Exception {
-        UUID userId = registerAndVerifyUser();
+  @Test
+  void loginReturnsAccessTokenAndStoresRefreshSessionHash() throws Exception {
+    UUID userId = registerAndVerifyUser();
 
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!"
                                 }
                                 """))
-                .andExpect(status().isOk())
-                .andExpect(cookie().exists("arenax_refresh_token"))
-                .andExpect(cookie().httpOnly("arenax_refresh_token", true))
-                .andExpect(cookie().path("arenax_refresh_token", "/api/v1/auth"))
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.expiresIn").value(900))
-                .andExpect(jsonPath("$.user.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.user.username").doesNotExist())
-                .andExpect(jsonPath("$.user.primaryEmail").value("player1@arenax.dev"))
-                .andExpect(jsonPath("$.user.emails[0].id").exists())
-                .andExpect(jsonPath("$.user.emails[0].email").value("player1@arenax.dev"))
-                .andExpect(jsonPath("$.user.emails[0].primary").value(true))
-                .andExpect(jsonPath("$.user.emails[0].verified").value(true))
-                .andExpect(jsonPath("$.user.emails[0].verifiedAt").exists())
-                .andExpect(jsonPath("$.user.fullName").value("Player One"))
-                .andExpect(jsonPath("$.user.status").value("ACTIVE"))
-                .andExpect(jsonPath("$.user.avatarUrl").doesNotExist())
-                .andExpect(jsonPath("$.user.emailVerifiedAt").exists())
-                .andExpect(jsonPath("$.user.roles").isArray())
-                .andExpect(jsonPath("$.user.permissions").isArray())
-                .andReturn();
+            .andExpect(status().isOk())
+            .andExpect(cookie().exists("arenax_refresh_token"))
+            .andExpect(cookie().httpOnly("arenax_refresh_token", true))
+            .andExpect(cookie().path("arenax_refresh_token", "/api/v1/auth"))
+            .andExpect(jsonPath("$.tokenType").value("Bearer"))
+            .andExpect(jsonPath("$.expiresIn").value(900))
+            .andExpect(jsonPath("$.user.userId").value(userId.toString()))
+            .andExpect(jsonPath("$.user.username").doesNotExist())
+            .andExpect(jsonPath("$.user.primaryEmail").value("player1@arenax.dev"))
+            .andExpect(jsonPath("$.user.emails[0].id").exists())
+            .andExpect(jsonPath("$.user.emails[0].email").value("player1@arenax.dev"))
+            .andExpect(jsonPath("$.user.emails[0].primary").value(true))
+            .andExpect(jsonPath("$.user.emails[0].verified").value(true))
+            .andExpect(jsonPath("$.user.emails[0].verifiedAt").exists())
+            .andExpect(jsonPath("$.user.fullName").value("Player One"))
+            .andExpect(jsonPath("$.user.status").value("ACTIVE"))
+            .andExpect(jsonPath("$.user.avatarUrl").doesNotExist())
+            .andExpect(jsonPath("$.user.emailVerifiedAt").exists())
+            .andExpect(jsonPath("$.user.roles").isArray())
+            .andExpect(jsonPath("$.user.permissions").isArray())
+            .andReturn();
 
-        JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
-        String accessToken = responseBody.path("accessToken").asText();
-        Jwt jwt = jwtDecoder.decode(accessToken);
+    JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
+    String accessToken = responseBody.path("accessToken").asText();
+    Jwt jwt = jwtDecoder.decode(accessToken);
 
-        List<RefreshSession> refreshSessions = refreshSessionRepository.findAll();
-        assertThat(refreshSessions).hasSize(1);
+    List<RefreshSession> refreshSessions = refreshSessionRepository.findAll();
+    assertThat(refreshSessions).hasSize(1);
 
-        RefreshSession refreshSession = refreshSessions.getFirst();
-        assertThat(refreshSession.getUserId()).isEqualTo(userId);
-        assertThat(refreshSession.getTokenHash()).isNotBlank();
-        assertThat(refreshSession.getExpiresAt()).isNotNull();
-        assertThat(refreshSession.getRevokedAt()).isNull();
+    RefreshSession refreshSession = refreshSessions.getFirst();
+    assertThat(refreshSession.getUserId()).isEqualTo(userId);
+    assertThat(refreshSession.getTokenHash()).isNotBlank();
+    assertThat(refreshSession.getExpiresAt()).isNotNull();
+    assertThat(refreshSession.getRevokedAt()).isNull();
 
-        assertThat(jwt.getSubject()).isEqualTo(userId.toString());
-        assertThat(jwt.getClaimAsString("iss")).isEqualTo("arenax-identity");
-        assertThat(jwt.getAudience()).containsExactly("arenax-api");
-        assertThat(jwt.getClaimAsString("sid")).isEqualTo(refreshSession.getId().toString());
-        assertThat(((Number) jwt.getClaim("token_version")).intValue()).isZero();
-        assertThat(jwt.getClaimAsStringList("roles")).isEmpty();
-        assertThat(jwt.getClaimAsStringList("permissions")).isEmpty();
+    assertThat(jwt.getSubject()).isEqualTo(userId.toString());
+    assertThat(jwt.getClaimAsString("iss")).isEqualTo("arenax-identity");
+    assertThat(jwt.getAudience()).containsExactly("arenax-api");
+    assertThat(jwt.getClaimAsString("sid")).isEqualTo(refreshSession.getId().toString());
+    assertThat(((Number) jwt.getClaim("token_version")).intValue()).isZero();
+    assertThat(jwt.getClaimAsStringList("roles")).isEmpty();
+    assertThat(jwt.getClaimAsStringList("permissions")).isEmpty();
 
-        User user = userRepository.findById(userId).orElseThrow();
-        assertThat(user.getLastLoginAt()).isNotNull();
-    }
+    User user = userRepository.findById(userId).orElseThrow();
+    assertThat(user.getLastLoginAt()).isNotNull();
+  }
 
-    @Test
-    void loginRejectsInvalidCredentialsWithGenericUnauthorizedResponse() throws Exception {
-        UUID userId = registerAndVerifyUser();
+  @Test
+  void loginRejectsInvalidCredentialsWithGenericUnauthorizedResponse() throws Exception {
+    UUID userId = registerAndVerifyUser();
 
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "WrongPassword!"
                                 }
                                 """))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
-                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+        .andExpect(jsonPath("$.message").value("Invalid email or password"));
 
-        User user = userRepository.findById(userId).orElseThrow();
-        assertThat(user.getFailedLoginAttempts()).isEqualTo(1);
-        assertThat(user.getLockedUntil()).isNull();
-    }
+    User user = userRepository.findById(userId).orElseThrow();
+    assertThat(user.getFailedLoginAttempts()).isEqualTo(1);
+    assertThat(user.getLockedUntil()).isNull();
+  }
 
-    @Test
-    void loginLocksUserAfterFiveFailedAttempts() throws Exception {
-        UUID userId = registerAndVerifyUser();
+  @Test
+  void loginLocksUserAfterFiveFailedAttempts() throws Exception {
+    UUID userId = registerAndVerifyUser();
 
-        for (int attempt = 1; attempt <= 4; attempt++) {
-            mockMvc.perform(post("/api/v1/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
+    for (int attempt = 1; attempt <= 4; attempt++) {
+      mockMvc
+          .perform(
+              post("/api/v1/auth/login")
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      """
                                     {
                                       "email": "player1@arenax.dev",
                                       "password": "WrongPassword!"
                                     }
                                     """))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-        }
+          .andExpect(status().isUnauthorized())
+          .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
 
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "WrongPassword!"
                                 }
                                 """))
-                .andExpect(status().isLocked())
-                .andExpect(jsonPath("$.code").value("ACCOUNT_LOCKED"))
-                .andExpect(jsonPath("$.message").value("Account is temporarily locked"));
+        .andExpect(status().isLocked())
+        .andExpect(jsonPath("$.code").value("ACCOUNT_LOCKED"))
+        .andExpect(jsonPath("$.message").value("Account is temporarily locked"));
 
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!"
                                 }
                                 """))
-                .andExpect(status().isLocked())
-                .andExpect(jsonPath("$.code").value("ACCOUNT_LOCKED"));
+        .andExpect(status().isLocked())
+        .andExpect(jsonPath("$.code").value("ACCOUNT_LOCKED"));
 
-        User user = userRepository.findById(userId).orElseThrow();
-        assertThat(user.getFailedLoginAttempts()).isZero();
-        assertThat(user.getLockedUntil()).isAfter(Instant.now());
-    }
+    User user = userRepository.findById(userId).orElseThrow();
+    assertThat(user.getFailedLoginAttempts()).isZero();
+    assertThat(user.getLockedUntil()).isAfter(Instant.now());
+  }
 
-    @Test
-    void loginRejectsUnverifiedUser() throws Exception {
-        registerUser();
+  @Test
+  void loginRejectsUnverifiedUser() throws Exception {
+    registerUser();
 
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!"
                                 }
                                 """))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-    }
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+  }
 
-    @Test
-    void loginAcceptsVerifiedSecondaryEmail() throws Exception {
-        UUID userId = registerAndVerifyUser();
-        outboxEventRepository.deleteAll();
+  @Test
+  void loginAcceptsVerifiedSecondaryEmail() throws Exception {
+    UUID userId = registerAndVerifyUser();
+    outboxEventRepository.deleteAll();
 
-        mockMvc.perform(post("/api/v1/users/me/emails")
-                        .header("X-Arenax-User-Id", userId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/users/me/emails")
+                .header("X-Arenax-User-Id", userId.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "second@arenax.dev"
                                 }
                                 """))
-                .andExpect(status().isCreated());
+        .andExpect(status().isCreated());
 
-        mockMvc.perform(post("/api/v1/auth/verify-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/verify-email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s"
                                 }
-                                """.formatted(extractVerificationToken(outboxEventRepository.findAll()))))
-                .andExpect(status().isNoContent());
+                                """
+                        .formatted(extractVerificationToken(outboxEventRepository.findAll()))))
+        .andExpect(status().isNoContent());
 
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "second@arenax.dev",
                                   "password": "Sup3rSecret!"
                                 }
                                 """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.user.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.user.primaryEmail").value("player1@arenax.dev"));
-    }
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.user.userId").value(userId.toString()))
+        .andExpect(jsonPath("$.user.primaryEmail").value("player1@arenax.dev"));
+  }
 
-    @Test
-    void loginRejectsSuspendedAccountWithForbidden() throws Exception {
-        UUID userId = registerAndVerifyUser();
-        User user = userRepository.findById(userId).orElseThrow();
-        user.suspend();
-        userRepository.save(user);
+  @Test
+  void loginRejectsSuspendedAccountWithForbidden() throws Exception {
+    UUID userId = registerAndVerifyUser();
+    User user = userRepository.findById(userId).orElseThrow();
+    user.suspend();
+    userRepository.save(user);
 
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!"
                                 }
                                 """))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("ACCOUNT_SUSPENDED"))
-                .andExpect(jsonPath("$.message").value("Account is suspended"));
-    }
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("ACCOUNT_SUSPENDED"))
+        .andExpect(jsonPath("$.message").value("Account is suspended"));
+  }
 
-    @Test
-    void loginRejectsDeactivatedAccountWithForbidden() throws Exception {
-        UUID userId = registerAndVerifyUser();
-        User user = userRepository.findById(userId).orElseThrow();
-        user.deactivate();
-        userRepository.save(user);
+  @Test
+  void loginRejectsDeactivatedAccountWithForbidden() throws Exception {
+    UUID userId = registerAndVerifyUser();
+    User user = userRepository.findById(userId).orElseThrow();
+    user.deactivate();
+    userRepository.save(user);
 
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!"
                                 }
                                 """))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("ACCOUNT_DEACTIVATED"))
-                .andExpect(jsonPath("$.message").value("Account is deactivated"));
-    }
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("ACCOUNT_DEACTIVATED"))
+        .andExpect(jsonPath("$.message").value("Account is deactivated"));
+  }
 
-    private UUID registerAndVerifyUser() throws Exception {
-        UUID userId = registerUser();
+  private UUID registerAndVerifyUser() throws Exception {
+    UUID userId = registerUser();
 
-        String verificationToken = extractVerificationToken(outboxEventRepository.findAll());
+    String verificationToken = extractVerificationToken(outboxEventRepository.findAll());
 
-        mockMvc.perform(post("/api/v1/auth/verify-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/verify-email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s"
                                 }
-                                """.formatted(verificationToken)))
-                .andExpect(status().isNoContent());
+                                """
+                        .formatted(verificationToken)))
+        .andExpect(status().isNoContent());
 
-        return userId;
-    }
+    return userId;
+  }
 
-    private UUID registerUser() throws Exception {
-        MvcResult registerResult = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+  private UUID registerUser() throws Exception {
+    MvcResult registerResult =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!",
                                   "fullName": "Player One"
                                 }
                                 """))
-                .andExpect(status().isCreated())
-                .andReturn();
+            .andExpect(status().isCreated())
+            .andReturn();
 
-        return UUID.fromString(objectMapper.readTree(registerResult.getResponse().getContentAsString())
-                .path("userId")
-                .asText());
-    }
+    return UUID.fromString(
+        objectMapper
+            .readTree(registerResult.getResponse().getContentAsString())
+            .path("userId")
+            .asText());
+  }
 
-    private String extractVerificationToken(List<OutboxEvent> outboxEvents) throws Exception {
-        OutboxEvent verificationEvent = outboxEvents.stream()
-                .filter(event -> event.getEventType().equals("identity.user.verification-requested.v1"))
-                .reduce((first, second) -> second)
-                .orElseThrow();
-        JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
-        return payload.path("payload").path("verificationToken").asText();
-    }
+  private String extractVerificationToken(List<OutboxEvent> outboxEvents) throws Exception {
+    OutboxEvent verificationEvent =
+        outboxEvents.stream()
+            .filter(event -> event.getEventType().equals("identity.user.verification-requested.v1"))
+            .reduce((first, second) -> second)
+            .orElseThrow();
+    JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
+    return payload.path("payload").path("verificationToken").asText();
+  }
 
-    @Test
-    void loginWithAccountIdReturnsOnlyRolesForThatAccount() throws Exception {
-        UUID userId = registerAndVerifyUser();
-        UUID account1 = UUID.randomUUID();
-        UUID account2 = UUID.randomUUID();
+  @Test
+  void loginWithAccountIdReturnsOnlyRolesForThatAccount() throws Exception {
+    UUID userId = registerAndVerifyUser();
+    UUID account1 = UUID.randomUUID();
+    UUID account2 = UUID.randomUUID();
 
-        Role roleAccount1 = new Role();
-        roleAccount1.setCode("ACCOUNT_ADMIN");
-        roleAccount1.setName("Account Admin");
-        roleRepository.save(roleAccount1);
+    Role roleAccount1 = new Role();
+    roleAccount1.setCode("ACCOUNT_ADMIN");
+    roleAccount1.setName("Account Admin");
+    roleRepository.save(roleAccount1);
 
-        Role roleAccount2 = new Role();
-        roleAccount2.setCode("ACCOUNT_MEMBER");
-        roleAccount2.setName("Account Member");
-        roleRepository.save(roleAccount2);
+    Role roleAccount2 = new Role();
+    roleAccount2.setCode("ACCOUNT_MEMBER");
+    roleAccount2.setName("Account Member");
+    roleRepository.save(roleAccount2);
 
-        RoleAssignment assignment1 = new RoleAssignment();
-        assignment1.setUserId(userId);
-        assignment1.setAccountId(account1);
-        assignment1.setRoleCode("ACCOUNT_ADMIN");
-        roleAssignmentRepository.save(assignment1);
+    RoleAssignment assignment1 = new RoleAssignment();
+    assignment1.setUserId(userId);
+    assignment1.setAccountId(account1);
+    assignment1.setRoleCode("ACCOUNT_ADMIN");
+    roleAssignmentRepository.save(assignment1);
 
-        RoleAssignment assignment2 = new RoleAssignment();
-        assignment2.setUserId(userId);
-        assignment2.setAccountId(account2);
-        assignment2.setRoleCode("ACCOUNT_MEMBER");
-        roleAssignmentRepository.save(assignment2);
+    RoleAssignment assignment2 = new RoleAssignment();
+    assignment2.setUserId(userId);
+    assignment2.setAccountId(account2);
+    assignment2.setRoleCode("ACCOUNT_MEMBER");
+    roleAssignmentRepository.save(assignment2);
 
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!",
                                   "accountId": "%s"
                                 }
-                                """.formatted(account1)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.user.roles").isArray())
-                .andExpect(jsonPath("$.user.permissions").isArray())
-                .andReturn();
+                                """
+                            .formatted(account1)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.user.roles").isArray())
+            .andExpect(jsonPath("$.user.permissions").isArray())
+            .andReturn();
 
-        JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
-        String accessToken = responseBody.path("accessToken").asText();
-        Jwt jwt = jwtDecoder.decode(accessToken);
+    JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
+    String accessToken = responseBody.path("accessToken").asText();
+    Jwt jwt = jwtDecoder.decode(accessToken);
 
-        assertThat(jwt.getClaimAsStringList("roles")).containsExactly("ACCOUNT_ADMIN");
-        assertThat(jwt.getClaimAsStringList("permissions")).isEmpty();
+    assertThat(jwt.getClaimAsStringList("roles")).containsExactly("ACCOUNT_ADMIN");
+    assertThat(jwt.getClaimAsStringList("permissions")).isEmpty();
 
-        JsonNode userRoles = responseBody.path("user").path("roles");
-        assertThat(userRoles.isArray()).isTrue();
-        List<String> roleList = new ArrayList<>();
-        userRoles.forEach(node -> roleList.add(node.asText()));
-        assertThat(roleList).containsExactly("ACCOUNT_ADMIN");
-        assertThat(roleList).doesNotContain("ACCOUNT_MEMBER");
-    }
+    JsonNode userRoles = responseBody.path("user").path("roles");
+    assertThat(userRoles.isArray()).isTrue();
+    List<String> roleList = new ArrayList<>();
+    userRoles.forEach(node -> roleList.add(node.asText()));
+    assertThat(roleList).containsExactly("ACCOUNT_ADMIN");
+    assertThat(roleList).doesNotContain("ACCOUNT_MEMBER");
+  }
 
-    @Test
-    void loginWithoutAccountIdReturnsEmptyRolesAndPermissions() throws Exception {
-        UUID userId = registerAndVerifyUser();
-        UUID account1 = UUID.randomUUID();
+  @Test
+  void loginWithoutAccountIdReturnsEmptyRolesAndPermissions() throws Exception {
+    UUID userId = registerAndVerifyUser();
+    UUID account1 = UUID.randomUUID();
 
-        Role roleAccount1 = new Role();
-        roleAccount1.setCode("ACCOUNT_ADMIN");
-        roleAccount1.setName("Account Admin");
-        roleRepository.save(roleAccount1);
+    Role roleAccount1 = new Role();
+    roleAccount1.setCode("ACCOUNT_ADMIN");
+    roleAccount1.setName("Account Admin");
+    roleRepository.save(roleAccount1);
 
-        RoleAssignment assignment1 = new RoleAssignment();
-        assignment1.setUserId(userId);
-        assignment1.setAccountId(account1);
-        assignment1.setRoleCode("ACCOUNT_ADMIN");
-        roleAssignmentRepository.save(assignment1);
+    RoleAssignment assignment1 = new RoleAssignment();
+    assignment1.setUserId(userId);
+    assignment1.setAccountId(account1);
+    assignment1.setRoleCode("ACCOUNT_ADMIN");
+    roleAssignmentRepository.save(assignment1);
 
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!"
                                 }
                                 """))
-                .andExpect(status().isOk())
-                .andReturn();
+            .andExpect(status().isOk())
+            .andReturn();
 
-        JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
-        String accessToken = responseBody.path("accessToken").asText();
-        Jwt jwt = jwtDecoder.decode(accessToken);
+    JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
+    String accessToken = responseBody.path("accessToken").asText();
+    Jwt jwt = jwtDecoder.decode(accessToken);
 
-        assertThat(jwt.getClaimAsStringList("roles")).isEmpty();
-        assertThat(jwt.getClaimAsStringList("permissions")).isEmpty();
-        assertThat(responseBody.path("user").path("roles")).isEmpty();
-        assertThat(responseBody.path("user").path("permissions")).isEmpty();
-    }
+    assertThat(jwt.getClaimAsStringList("roles")).isEmpty();
+    assertThat(jwt.getClaimAsStringList("permissions")).isEmpty();
+    assertThat(responseBody.path("user").path("roles")).isEmpty();
+    assertThat(responseBody.path("user").path("permissions")).isEmpty();
+  }
 }

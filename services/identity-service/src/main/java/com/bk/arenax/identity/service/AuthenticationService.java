@@ -1,12 +1,26 @@
 package com.bk.arenax.identity.service;
 
-import com.bk.arenax.identity.dto.response.AuthTokenResponse;
-import com.bk.arenax.identity.dto.response.UserProfileResponse;
+import lombok.RequiredArgsConstructor;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.bk.arenax.identity.domain.RefreshSession;
 import com.bk.arenax.identity.domain.User;
 import com.bk.arenax.identity.domain.UserIdentifier;
 import com.bk.arenax.identity.domain.UserIdentifierType;
 import com.bk.arenax.identity.domain.UserStatus;
+import com.bk.arenax.identity.dto.response.AuthTokenResponse;
+import com.bk.arenax.identity.dto.response.UserProfileResponse;
 import com.bk.arenax.identity.infrastructure.jwt.JwtService;
 import com.bk.arenax.identity.repository.RefreshSessionRepository;
 import com.bk.arenax.identity.repository.UserIdentifierRepository;
@@ -16,17 +30,6 @@ import com.bk.arenax.identity.service.support.IdentityTokenGenerator;
 import com.bk.arenax.identity.service.support.IdentityTokenHasher;
 import com.bk.arenax.identity.service.support.UserEmailResponseMapper;
 import com.bk.arenax.identity.service.support.UserProfileResponseAssembler;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -57,13 +60,15 @@ public class AuthenticationService {
       throw new AccountLockedException();
     }
 
-    if (user != null && (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.DEACTIVATED)) {
+    if (user != null
+        && (user.getStatus() == UserStatus.SUSPENDED
+            || user.getStatus() == UserStatus.DEACTIVATED)) {
       throw new AccountStatusException(user.getStatus());
     }
 
     try {
       authenticationManager.authenticate(
-              new UsernamePasswordAuthenticationToken(normalizedEmail, password));
+          new UsernamePasswordAuthenticationToken(normalizedEmail, password));
     } catch (AuthenticationException exception) {
       if (user != null && user.getStatus() == UserStatus.ACTIVE && !user.isLockedAt(now)) {
         user.recordFailedLogin(now, MAX_FAILED_LOGIN_ATTEMPTS, LOGIN_LOCK_DURATION);
@@ -76,7 +81,8 @@ public class AuthenticationService {
       throw new AuthenticationServiceException("Authentication failed", exception);
     }
 
-    user = findUserByVerifiedEmail(normalizedEmail)
+    user =
+        findUserByVerifiedEmail(normalizedEmail)
             .orElseThrow(() -> new IllegalStateException("Authenticated user no longer exists"));
     user.recordSuccessfulLogin(now);
 
@@ -86,18 +92,23 @@ public class AuthenticationService {
   @Transactional(noRollbackFor = IllegalStateException.class)
   public LoginResult refresh(String rawRefreshToken) {
     Instant now = Instant.now();
-    RefreshSession currentSession = refreshSessionRepository.findByTokenHash(tokenHasher.hash(rawRefreshToken))
+    RefreshSession currentSession =
+        refreshSessionRepository
+            .findByTokenHash(tokenHasher.hash(rawRefreshToken))
             .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
     if (!currentSession.isAvailableAt(now)) {
       if (currentSession.getRevokedAt() != null) {
-        refreshSessionRepository.findAllByUserId(currentSession.getUserId())
-                .forEach(session -> session.revoke(now));
+        refreshSessionRepository
+            .findAllByUserId(currentSession.getUserId())
+            .forEach(session -> session.revoke(now));
         throw new IllegalStateException("Refresh token reuse detected; all sessions revoked");
       }
       throw new IllegalArgumentException("Invalid refresh token");
     }
 
-    User user = userRepo.findById(currentSession.getUserId())
+    User user =
+        userRepo
+            .findById(currentSession.getUserId())
             .orElseThrow(() -> new IllegalStateException("User not found for refresh session"));
     if (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.DEACTIVATED) {
       throw new AccountStatusException(user.getStatus());
@@ -110,15 +121,15 @@ public class AuthenticationService {
 
   @Transactional
   public void logout(String rawRefreshToken) {
-    refreshSessionRepository.findByTokenHash(tokenHasher.hash(rawRefreshToken))
-            .ifPresent(session -> session.revoke(Instant.now()));
+    refreshSessionRepository
+        .findByTokenHash(tokenHasher.hash(rawRefreshToken))
+        .ifPresent(session -> session.revoke(Instant.now()));
   }
 
   @Transactional
   public void logoutAll(UUID userId) {
     Instant now = Instant.now();
-    refreshSessionRepository.findAllByUserId(userId)
-            .forEach(session -> session.revoke(now));
+    refreshSessionRepository.findAllByUserId(userId).forEach(session -> session.revoke(now));
   }
 
   public long refreshTokenTtlSeconds() {
@@ -128,16 +139,18 @@ public class AuthenticationService {
   private LoginResult issueLoginResult(User user, UUID accountId, Instant now) {
 
     String rawRefreshToken = tokenGenerator.generate();
-    RefreshSession refreshSession = refreshSessionRepository.save(
+    RefreshSession refreshSession =
+        refreshSessionRepository.save(
             RefreshSession.issue(
-                    user.getId(),
-                    tokenHasher.hash(rawRefreshToken),
-                    now.plusSeconds(jwtService.getRefreshTokenTtlSeconds()),
-                    accountId));
+                user.getId(),
+                tokenHasher.hash(rawRefreshToken),
+                now.plusSeconds(jwtService.getRefreshTokenTtlSeconds()),
+                accountId));
 
     RbacService.RbacDetails rbac = rbacService.getUserRbac(user.getId(), accountId);
 
-    String accessToken = jwtService.issueAccessToken(
+    String accessToken =
+        jwtService.issueAccessToken(
             user.getId(),
             refreshSession.getId(),
             user.getTokenVersion(),
@@ -148,25 +161,21 @@ public class AuthenticationService {
     UserProfileResponse profile = profileAssembler.assemble(user, accountId);
 
     return new LoginResult(
-            new AuthTokenResponse(
-                    accessToken,
-                    "Bearer",
-                    jwtService.getAccessTokenTtlSeconds(),
-                    profile),
-            rawRefreshToken);
+        new AuthTokenResponse(
+            accessToken, "Bearer", jwtService.getAccessTokenTtlSeconds(), profile),
+        rawRefreshToken);
   }
 
   private Optional<User> findUserByVerifiedEmail(String normalizedEmail) {
     return findVerifiedEmailIdentifier(normalizedEmail)
-            .flatMap(identifier -> userRepo.findById(identifier.getUserId()));
+        .flatMap(identifier -> userRepo.findById(identifier.getUserId()));
   }
 
   private Optional<UserIdentifier> findVerifiedEmailIdentifier(String normalizedEmail) {
-    return userIdentifierRepository.findByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)
-            .filter(UserIdentifier::isVerified);
+    return userIdentifierRepository
+        .findByTypeAndNormalizedValue(UserIdentifierType.EMAIL, normalizedEmail)
+        .filter(UserIdentifier::isVerified);
   }
 
-  public record LoginResult(AuthTokenResponse response, String refreshToken) {
-  }
-
+  public record LoginResult(AuthTokenResponse response, String refreshToken) {}
 }

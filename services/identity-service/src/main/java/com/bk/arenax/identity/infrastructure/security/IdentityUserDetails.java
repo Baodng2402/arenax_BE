@@ -1,16 +1,18 @@
 package com.bk.arenax.identity.infrastructure.security;
 
-import com.bk.arenax.identity.domain.User;
-import com.bk.arenax.identity.domain.UserIdentifier;
-import com.bk.arenax.identity.domain.UserStatus;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.Nullable;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+
+import org.jspecify.annotations.Nullable;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import com.bk.arenax.identity.domain.User;
+import com.bk.arenax.identity.domain.UserIdentifier;
+import com.bk.arenax.identity.domain.UserStatus;
 
 @RequiredArgsConstructor
 public final class IdentityUserDetails implements UserDetails {

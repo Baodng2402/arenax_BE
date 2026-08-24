@@ -1,4 +1,5 @@
 plugins {
+    id("com.diffplug.spotless")
     java
 }
 
@@ -12,6 +13,17 @@ dependencies {
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+spotless {
+    java {
+        target("src/**/*.java")
+        googleJavaFormat()
+        importOrder("", "java", "javax", "org", "com")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
     }
 }
 

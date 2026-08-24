@@ -6,12 +6,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.time.Instant;
-import java.util.Objects;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.Instant;
+import java.util.Objects;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -19,63 +20,64 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class EmailVerificationToken {
 
-    @Id
-    @Column(nullable = false, updatable = false)
-    private UUID id;
+  @Id
+  @Column(nullable = false, updatable = false)
+  private UUID id;
 
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+  @Column(name = "user_id", nullable = false)
+  private UUID userId;
 
-    @Column(name = "user_identifier_id", nullable = false)
-    private UUID userIdentifierId;
+  @Column(name = "user_identifier_id", nullable = false)
+  private UUID userIdentifierId;
 
-    @Column(name = "token_hash", nullable = false, length = 128)
-    private String tokenHash;
+  @Column(name = "token_hash", nullable = false, length = 128)
+  private String tokenHash;
 
-    @Column(name = "expires_at", nullable = false)
-    private Instant expiresAt;
+  @Column(name = "expires_at", nullable = false)
+  private Instant expiresAt;
 
-    @Column(name = "consumed_at")
-    private Instant consumedAt;
+  @Column(name = "consumed_at")
+  private Instant consumedAt;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
-    @PrePersist
-    void onCreate() {
-        Instant now = Instant.now();
-        if (id == null) {
-            id = UUID.randomUUID();
-        }
-        createdAt = now;
-        updatedAt = now;
+  @PrePersist
+  void onCreate() {
+    Instant now = Instant.now();
+    if (id == null) {
+      id = UUID.randomUUID();
     }
+    createdAt = now;
+    updatedAt = now;
+  }
 
-    @PreUpdate
-    void onUpdate() {
-        updatedAt = Instant.now();
-    }
+  @PreUpdate
+  void onUpdate() {
+    updatedAt = Instant.now();
+  }
 
-    public static EmailVerificationToken issue(UUID userId, UUID userIdentifierId, String tokenHash, Instant expiresAt) {
-        EmailVerificationToken token = new EmailVerificationToken();
-        token.userId = Objects.requireNonNull(userId);
-        token.userIdentifierId = Objects.requireNonNull(userIdentifierId);
-        token.tokenHash = Objects.requireNonNull(tokenHash);
-        token.expiresAt = Objects.requireNonNull(expiresAt);
-        return token;
-    }
+  public static EmailVerificationToken issue(
+      UUID userId, UUID userIdentifierId, String tokenHash, Instant expiresAt) {
+    EmailVerificationToken token = new EmailVerificationToken();
+    token.userId = Objects.requireNonNull(userId);
+    token.userIdentifierId = Objects.requireNonNull(userIdentifierId);
+    token.tokenHash = Objects.requireNonNull(tokenHash);
+    token.expiresAt = Objects.requireNonNull(expiresAt);
+    return token;
+  }
 
-    public boolean isAvailableAt(Instant now) {
-        return consumedAt == null && !expiresAt.isBefore(now);
-    }
+  public boolean isAvailableAt(Instant now) {
+    return consumedAt == null && !expiresAt.isBefore(now);
+  }
 
-    public void consume(Instant consumedAt) {
-        if (this.consumedAt != null) {
-            return;
-        }
-        this.consumedAt = Objects.requireNonNull(consumedAt);
+  public void consume(Instant consumedAt) {
+    if (this.consumedAt != null) {
+      return;
     }
+    this.consumedAt = Objects.requireNonNull(consumedAt);
+  }
 }

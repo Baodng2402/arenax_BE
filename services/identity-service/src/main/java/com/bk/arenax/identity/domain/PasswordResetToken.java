@@ -6,11 +6,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.time.Instant;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -18,56 +19,56 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PasswordResetToken {
 
-    @Id
-    @Column(nullable = false, updatable = false)
-    private UUID id;
+  @Id
+  @Column(nullable = false, updatable = false)
+  private UUID id;
 
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+  @Column(name = "user_id", nullable = false)
+  private UUID userId;
 
-    @Column(name = "token_hash", nullable = false, length = 128)
-    private String tokenHash;
+  @Column(name = "token_hash", nullable = false, length = 128)
+  private String tokenHash;
 
-    @Column(name = "expires_at", nullable = false)
-    private Instant expiresAt;
+  @Column(name = "expires_at", nullable = false)
+  private Instant expiresAt;
 
-    @Column(name = "consumed_at")
-    private Instant consumedAt;
+  @Column(name = "consumed_at")
+  private Instant consumedAt;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
-    @PrePersist
-    void onCreate() {
-        Instant now = Instant.now();
-        id = id == null ? UUID.randomUUID() : id;
-        createdAt = now;
-        updatedAt = now;
+  @PrePersist
+  void onCreate() {
+    Instant now = Instant.now();
+    id = id == null ? UUID.randomUUID() : id;
+    createdAt = now;
+    updatedAt = now;
+  }
+
+  @PreUpdate
+  void onUpdate() {
+    updatedAt = Instant.now();
+  }
+
+  public boolean isAvailableAt(Instant now) {
+    return consumedAt == null && expiresAt.isAfter(now);
+  }
+
+  public void consume(Instant consumedAt) {
+    if (this.consumedAt == null) {
+      this.consumedAt = consumedAt;
     }
+  }
 
-    @PreUpdate
-    void onUpdate() {
-        updatedAt = Instant.now();
-    }
-
-    public boolean isAvailableAt(Instant now) {
-        return consumedAt == null && expiresAt.isAfter(now);
-    }
-
-    public void consume(Instant consumedAt) {
-        if (this.consumedAt == null) {
-            this.consumedAt = consumedAt;
-        }
-    }
-
-    public static PasswordResetToken issue(UUID userId, String tokenHash, Instant expiresAt) {
-        PasswordResetToken token = new PasswordResetToken();
-        token.userId = userId;
-        token.tokenHash = tokenHash;
-        token.expiresAt = expiresAt;
-        return token;
-    }
+  public static PasswordResetToken issue(UUID userId, String tokenHash, Instant expiresAt) {
+    PasswordResetToken token = new PasswordResetToken();
+    token.userId = userId;
+    token.tokenHash = tokenHash;
+    token.expiresAt = expiresAt;
+    return token;
+  }
 }

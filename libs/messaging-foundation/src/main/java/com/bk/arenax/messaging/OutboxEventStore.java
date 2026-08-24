@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface OutboxEventStore {
 
-    List<? extends PendingOutboxEvent> findPending();
+  List<? extends PendingOutboxEvent> findPending();
 
-    PendingOutboxEvent save(PendingOutboxEvent event);
+  PendingOutboxEvent save(PendingOutboxEvent event);
 }

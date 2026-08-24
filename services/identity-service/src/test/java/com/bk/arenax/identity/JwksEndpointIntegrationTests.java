@@ -14,18 +14,18 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class JwksEndpointIntegrationTests {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Test
-    void jwksEndpointExposesCurrentSigningKey() throws Exception {
-        mockMvc.perform(get("/.well-known/jwks.json"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.keys[0].kid").value("identity-test-key"))
-                .andExpect(jsonPath("$.keys[0].alg").value("RS256"))
-                .andExpect(jsonPath("$.keys[0].kty").value("RSA"))
-                .andExpect(jsonPath("$.keys[0].use").value("sig"))
-                .andExpect(jsonPath("$.keys[0].n").isNotEmpty())
-                .andExpect(jsonPath("$.keys[0].e").value("AQAB"));
-    }
+  @Test
+  void jwksEndpointExposesCurrentSigningKey() throws Exception {
+    mockMvc
+        .perform(get("/.well-known/jwks.json"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.keys[0].kid").value("identity-test-key"))
+        .andExpect(jsonPath("$.keys[0].alg").value("RS256"))
+        .andExpect(jsonPath("$.keys[0].kty").value("RSA"))
+        .andExpect(jsonPath("$.keys[0].use").value("sig"))
+        .andExpect(jsonPath("$.keys[0].n").isNotEmpty())
+        .andExpect(jsonPath("$.keys[0].e").value("AQAB"));
+  }
 }

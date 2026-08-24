@@ -5,6 +5,23 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
 import com.bk.arenax.identity.domain.EmailVerificationToken;
 import com.bk.arenax.identity.domain.OutboxEvent;
 import com.bk.arenax.identity.domain.User;
@@ -18,187 +35,191 @@ import com.bk.arenax.identity.repository.UserIdentifierRepository;
 import com.bk.arenax.identity.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class VerifyEmailControllerIntegrationTests {
 
-    @Autowired
-    private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private EmailVerificationTokenRepository emailVerificationTokenRepository;
+  @Autowired private EmailVerificationTokenRepository emailVerificationTokenRepository;
 
-    @Autowired
-    private OutboxEventRepository outboxEventRepository;
+  @Autowired private OutboxEventRepository outboxEventRepository;
 
-    @Autowired
-    private PasswordResetTokenRepository passwordResetTokenRepository;
+  @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
 
-    @Autowired
-    private RefreshSessionRepository refreshSessionRepository;
+  @Autowired private RefreshSessionRepository refreshSessionRepository;
 
-    @Autowired
-    private UserIdentifierRepository userIdentifierRepository;
+  @Autowired private UserIdentifierRepository userIdentifierRepository;
 
-    @BeforeEach
-    void setUp() {
-        outboxEventRepository.deleteAll();
-        refreshSessionRepository.deleteAll();
-        passwordResetTokenRepository.deleteAll();
-        emailVerificationTokenRepository.deleteAll();
-        userIdentifierRepository.deleteAll();
-        userRepository.deleteAll();
-    }
+  @BeforeEach
+  void setUp() {
+    outboxEventRepository.deleteAll();
+    refreshSessionRepository.deleteAll();
+    passwordResetTokenRepository.deleteAll();
+    emailVerificationTokenRepository.deleteAll();
+    userIdentifierRepository.deleteAll();
+    userRepository.deleteAll();
+  }
 
-    @Test
-    void verifyEmailActivatesPendingUserAndPublishesRegisteredEvent() throws Exception {
-        UUID userId = registerPendingUser();
-        String verificationToken = extractVerificationToken(outboxEventRepository.findAll());
+  @Test
+  void verifyEmailActivatesPendingUserAndPublishesRegisteredEvent() throws Exception {
+    UUID userId = registerPendingUser();
+    String verificationToken = extractVerificationToken(outboxEventRepository.findAll());
 
-        mockMvc.perform(post("/api/v1/auth/verify-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/verify-email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s"
                                 }
-                                """.formatted(verificationToken)))
-                .andExpect(status().isNoContent());
+                                """
+                        .formatted(verificationToken)))
+        .andExpect(status().isNoContent());
 
-        User user = userRepository.findById(userId).orElseThrow();
-        assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
-        assertThat(user.getEmailVerifiedAt()).isNotNull();
+    User user = userRepository.findById(userId).orElseThrow();
+    assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
+    assertThat(user.getEmailVerifiedAt()).isNotNull();
 
-        List<EmailVerificationToken> verificationTokens = emailVerificationTokenRepository.findAll();
-        assertThat(verificationTokens).hasSize(1);
-        assertThat(verificationTokens.getFirst().getConsumedAt()).isNotNull();
+    List<EmailVerificationToken> verificationTokens = emailVerificationTokenRepository.findAll();
+    assertThat(verificationTokens).hasSize(1);
+    assertThat(verificationTokens.getFirst().getConsumedAt()).isNotNull();
 
-        List<OutboxEvent> outboxEvents = outboxEventRepository.findAll();
-        assertThat(outboxEvents).hasSize(2);
+    List<OutboxEvent> outboxEvents = outboxEventRepository.findAll();
+    assertThat(outboxEvents).hasSize(2);
 
-        OutboxEvent registeredEvent = outboxEvents.stream()
-                .filter(event -> event.getEventType().equals("identity.user.registered.v2"))
-                .findFirst()
-                .orElseThrow();
+    OutboxEvent registeredEvent =
+        outboxEvents.stream()
+            .filter(event -> event.getEventType().equals("identity.user.registered.v2"))
+            .findFirst()
+            .orElseThrow();
 
-        JsonNode payload = objectMapper.readTree(registeredEvent.getPayload());
-        assertThat(payload.path("payload").path("userId").asText()).isEqualTo(userId.toString());
-        assertThat(payload.path("payload").path("displayName").asText()).isEqualTo("Player One");
-        assertThat(payload.path("payload").has("email")).isFalse();
-    }
+    JsonNode payload = objectMapper.readTree(registeredEvent.getPayload());
+    assertThat(payload.path("payload").path("userId").asText()).isEqualTo(userId.toString());
+    assertThat(payload.path("payload").path("displayName").asText()).isEqualTo("Player One");
+    assertThat(payload.path("payload").has("email")).isFalse();
+  }
 
-    @Test
-    void verifyEmailRejectsUnknownTokenAsBadRequest() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/verify-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+  @Test
+  void verifyEmailRejectsUnknownTokenAsBadRequest() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/auth/verify-email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "abcdefghijklmnopqrstuvwxyzABCDEF"
                                 }
                                 """))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
-    }
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+  }
 
-    @Test
-    void verifyEmailRejectsConsumedTokenAsGone() throws Exception {
-        registerPendingUser();
-        String verificationToken = extractVerificationToken(outboxEventRepository.findAll());
+  @Test
+  void verifyEmailRejectsConsumedTokenAsGone() throws Exception {
+    registerPendingUser();
+    String verificationToken = extractVerificationToken(outboxEventRepository.findAll());
 
-        mockMvc.perform(post("/api/v1/auth/verify-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/verify-email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s"
                                 }
-                                """.formatted(verificationToken)))
-                .andExpect(status().isNoContent());
+                                """
+                        .formatted(verificationToken)))
+        .andExpect(status().isNoContent());
 
-        mockMvc.perform(post("/api/v1/auth/verify-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/verify-email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s"
                                 }
-                                """.formatted(verificationToken)))
-                .andExpect(status().isGone())
-                .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
-    }
+                                """
+                        .formatted(verificationToken)))
+        .andExpect(status().isGone())
+        .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
+  }
 
-    @Test
-    void verifyEmailRejectsExpiredTokenAsGone() throws Exception {
-        UUID userId = registerPendingUser();
-        UserIdentifier identifier = userIdentifierRepository.findAll().getFirst();
+  @Test
+  void verifyEmailRejectsExpiredTokenAsGone() throws Exception {
+    UUID userId = registerPendingUser();
+    UserIdentifier identifier = userIdentifierRepository.findAll().getFirst();
 
-        String rawToken = "expired-verification-token-value";
-        emailVerificationTokenRepository.save(EmailVerificationToken.issue(
-                userId, identifier.getId(), hashToken(rawToken), Instant.now().minusSeconds(1)));
+    String rawToken = "expired-verification-token-value";
+    emailVerificationTokenRepository.save(
+        EmailVerificationToken.issue(
+            userId, identifier.getId(), hashToken(rawToken), Instant.now().minusSeconds(1)));
 
-        mockMvc.perform(post("/api/v1/auth/verify-email")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+    mockMvc
+        .perform(
+            post("/api/v1/auth/verify-email")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                 {
                                   "token": "%s"
                                 }
-                                """.formatted(rawToken)))
-                .andExpect(status().isGone())
-                .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
-    }
+                                """
+                        .formatted(rawToken)))
+        .andExpect(status().isGone())
+        .andExpect(jsonPath("$.code").value("TOKEN_NO_LONGER_VALID"));
+  }
 
-    private UUID registerPendingUser() throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+  private UUID registerPendingUser() throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/register")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
                                 {
                                   "email": "player1@arenax.dev",
                                   "password": "Sup3rSecret!",
                                   "fullName": "Player One"
                                 }
                                 """))
-                .andExpect(status().isCreated())
-                .andReturn();
+            .andExpect(status().isCreated())
+            .andReturn();
 
-        JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
-        return UUID.fromString(responseBody.path("userId").asText());
-    }
+    JsonNode responseBody = objectMapper.readTree(result.getResponse().getContentAsString());
+    return UUID.fromString(responseBody.path("userId").asText());
+  }
 
-    private String extractVerificationToken(List<OutboxEvent> outboxEvents) throws Exception {
-        OutboxEvent verificationEvent = outboxEvents.stream()
-                .filter(event -> event.getEventType().equals("identity.user.verification-requested.v1"))
-                .findFirst()
-                .orElseThrow();
-        JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
-        return payload.path("payload").path("verificationToken").asText();
-    }
+  private String extractVerificationToken(List<OutboxEvent> outboxEvents) throws Exception {
+    OutboxEvent verificationEvent =
+        outboxEvents.stream()
+            .filter(event -> event.getEventType().equals("identity.user.verification-requested.v1"))
+            .findFirst()
+            .orElseThrow();
+    JsonNode payload = objectMapper.readTree(verificationEvent.getPayload());
+    return payload.path("payload").path("verificationToken").asText();
+  }
 
-    private static String hashToken(String rawToken) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return Base64.getUrlEncoder().withoutPadding()
-                    .encodeToString(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 not available", exception);
-        }
+  private static String hashToken(String rawToken) {
+    try {
+      MessageDigest digest = MessageDigest.getInstance("SHA-256");
+      return Base64.getUrlEncoder()
+          .withoutPadding()
+          .encodeToString(digest.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+    } catch (NoSuchAlgorithmException exception) {
+      throw new IllegalStateException("SHA-256 not available", exception);
     }
+  }
 }

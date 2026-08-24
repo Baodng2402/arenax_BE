@@ -1,14 +1,16 @@
 package com.bk.arenax.competition.repository;
 
-import com.bk.arenax.competition.domain.entity.OutboxEvent;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.bk.arenax.competition.domain.entity.OutboxEvent;
 
 public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
 
-    Optional<OutboxEvent> findByEventTypeAndCorrelationId(String eventType, UUID correlationId);
+  Optional<OutboxEvent> findByEventTypeAndCorrelationId(String eventType, UUID correlationId);
 
-    List<OutboxEvent> findTop50ByPublishedAtIsNullOrderByCreatedAtAsc();
+  List<OutboxEvent> findTop50ByPublishedAtIsNullOrderByCreatedAtAsc();
 }

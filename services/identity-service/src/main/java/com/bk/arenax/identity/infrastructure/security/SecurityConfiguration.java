@@ -1,14 +1,15 @@
 package com.bk.arenax.identity.infrastructure.security;
 
-import com.bk.arenax.identity.infrastructure.jwt.JwtProperties;
-import com.bk.arenax.security.trustedgateway.TrustedGatewayAuthenticationFilter;
-import com.bk.arenax.security.trustedgateway.TrustedGatewayFilterMode;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
-import com.nimbusds.jose.proc.SecurityContext;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
+
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,110 +29,105 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.KeyFactory;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
+import com.bk.arenax.identity.infrastructure.jwt.JwtProperties;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayAuthenticationFilter;
+import com.bk.arenax.security.trustedgateway.TrustedGatewayFilterMode;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 
 @Configuration
 @EnableConfigurationProperties({JwtProperties.class, CookieProperties.class})
-
 public class SecurityConfiguration {
 
   @Bean
-  PasswordEncoder passwordEncoder(){
+  PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
 
   @Bean
-  RSAPublicKey jwtPublicKey(JwtProperties jwtProperties){
+  RSAPublicKey jwtPublicKey(JwtProperties jwtProperties) {
     return readPublicKey(jwtProperties.publicKeyLocation());
   }
 
   @Bean
-  RSAPrivateKey jwtPrivateKey(JwtProperties jwtProperties){
+  RSAPrivateKey jwtPrivateKey(JwtProperties jwtProperties) {
     return readPrivateKey(jwtProperties.privateKeyLocation());
   }
 
   @Bean
-  RSAKey rsaKey(JwtProperties jwtProperties, RSAPublicKey publicKey, RSAPrivateKey privateKey){
+  RSAKey rsaKey(JwtProperties jwtProperties, RSAPublicKey publicKey, RSAPrivateKey privateKey) {
     return new RSAKey.Builder(publicKey)
-            .privateKey(privateKey)
-            .algorithm(JWSAlgorithm.RS256)
-            .keyUse(KeyUse.SIGNATURE)
-            .keyID(jwtProperties.keyId())
-            .build();
+        .privateKey(privateKey)
+        .algorithm(JWSAlgorithm.RS256)
+        .keyUse(KeyUse.SIGNATURE)
+        .keyID(jwtProperties.keyId())
+        .build();
   }
 
   @Bean
-  JWKSet publicJwkSet(RSAKey rsaKey){
+  JWKSet publicJwkSet(RSAKey rsaKey) {
     return new JWKSet(rsaKey.toPublicJWK());
   }
 
   @Bean
-  JwtEncoder jwtEncoder(RSAKey rsaKey){
+  JwtEncoder jwtEncoder(RSAKey rsaKey) {
     return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(rsaKey)));
   }
 
   @Bean
-  JwtDecoder jwtDecoder(RSAPublicKey jwtPublicKey,JwtProperties jwtProperties){
-    NimbusJwtDecoder decoder= NimbusJwtDecoder.withPublicKey(jwtPublicKey)
+  JwtDecoder jwtDecoder(RSAPublicKey jwtPublicKey, JwtProperties jwtProperties) {
+    NimbusJwtDecoder decoder =
+        NimbusJwtDecoder.withPublicKey(jwtPublicKey)
             .signatureAlgorithm(SignatureAlgorithm.RS256)
             .build();
-    OAuth2TokenValidator<Jwt> issuerValidator = JwtValidators
-            .createDefaultWithIssuer(jwtProperties.issuer());
-    OAuth2TokenValidator<Jwt> audienceValidator = jwt ->
-            jwt.getAudience()
-                    .contains(jwtProperties.audience()) ? OAuth2TokenValidatorResult.success()
-                    : OAuth2TokenValidatorResult.failure(
-                            new OAuth2Error(
-                                    "invalid_token",
-                                    "Required audience is missing",
-                                    null
-                            )
-                    );
+    OAuth2TokenValidator<Jwt> issuerValidator =
+        JwtValidators.createDefaultWithIssuer(jwtProperties.issuer());
+    OAuth2TokenValidator<Jwt> audienceValidator =
+        jwt ->
+            jwt.getAudience().contains(jwtProperties.audience())
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(
+                    new OAuth2Error("invalid_token", "Required audience is missing", null));
     decoder.setJwtValidator(
-            new DelegatingOAuth2TokenValidator<>(
-            issuerValidator,
-            audienceValidator
-    ));
+        new DelegatingOAuth2TokenValidator<>(issuerValidator, audienceValidator));
     return decoder;
   }
 
   @Bean
   TrustedGatewayAuthenticationFilter trustedGatewayAuthenticationFilter() {
-    return new TrustedGatewayAuthenticationFilter(TrustedGatewayFilterMode.OPTIONAL_UNLESS_AUTHORIZATION_PRESENT);
+    return new TrustedGatewayAuthenticationFilter(
+        TrustedGatewayFilterMode.OPTIONAL_UNLESS_AUTHORIZATION_PRESENT);
   }
 
   @Bean
-  SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                          TrustedGatewayAuthenticationFilter trustedGatewayAuthenticationFilter) throws Exception{
+  SecurityFilterChain securityFilterChain(
+      HttpSecurity http, TrustedGatewayAuthenticationFilter trustedGatewayAuthenticationFilter)
+      throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth->auth
-                    .requestMatchers(SecurityEndpoints.PUBLIC).permitAll()
-                    .anyRequest().authenticated())
-            .addFilterBefore(trustedGatewayAuthenticationFilter,
-                    UsernamePasswordAuthenticationFilter.class)
-            .oauth2ResourceServer(oauth2->oauth2.jwt(
-                    Customizer.withDefaults()
-            ))
-            .cors(Customizer.withDefaults())
-            .sessionManagement(session->session
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-    return  http.build();
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers(SecurityEndpoints.PUBLIC)
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+        .addFilterBefore(
+            trustedGatewayAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
+        .cors(Customizer.withDefaults())
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+    return http.build();
   }
 
   @Bean
-  AuthenticationManager authenticationManager(IdentityUserDetailsService userDetailsService,
-                                              PasswordEncoder passwordEncoder){
+  AuthenticationManager authenticationManager(
+      IdentityUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
     var provider = new DaoAuthenticationProvider(userDetailsService);
     provider.setPasswordEncoder(passwordEncoder);
 
@@ -140,8 +136,10 @@ public class SecurityConfiguration {
 
   private static RSAPrivateKey readPrivateKey(Resource resource) {
     try {
-      byte[] keyBytes = decodePem(resource, "-----BEGIN PRIVATE KEY-----", "-----END PRIVATE KEY-----");
-      return (RSAPrivateKey) KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+      byte[] keyBytes =
+          decodePem(resource, "-----BEGIN PRIVATE KEY-----", "-----END PRIVATE KEY-----");
+      return (RSAPrivateKey)
+          KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
     } catch (GeneralSecurityException exception) {
       throw new IllegalStateException("Failed to parse RSA private key", exception);
     }
@@ -149,8 +147,10 @@ public class SecurityConfiguration {
 
   private static RSAPublicKey readPublicKey(Resource resource) {
     try {
-      byte[] keyBytes = decodePem(resource, "-----BEGIN PUBLIC KEY-----", "-----END PUBLIC KEY-----");
-      return (RSAPublicKey) KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(keyBytes));
+      byte[] keyBytes =
+          decodePem(resource, "-----BEGIN PUBLIC KEY-----", "-----END PUBLIC KEY-----");
+      return (RSAPublicKey)
+          KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(keyBytes));
     } catch (GeneralSecurityException exception) {
       throw new IllegalStateException("Failed to parse RSA public key", exception);
     }
@@ -159,9 +159,7 @@ public class SecurityConfiguration {
   private static byte[] decodePem(Resource resource, String beginMarker, String endMarker) {
     try {
       String pem = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-      String normalized = pem.replace(beginMarker, "")
-              .replace(endMarker, "")
-              .replaceAll("\\s", "");
+      String normalized = pem.replace(beginMarker, "").replace(endMarker, "").replaceAll("\\s", "");
       return Base64.getDecoder().decode(normalized);
     } catch (IOException exception) {
       throw new IllegalStateException("Failed to read key resource " + resource, exception);

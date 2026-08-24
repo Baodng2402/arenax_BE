@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record VerifyEmailRequest(@NotBlank String token) {
 
-    public VerifyEmailRequest {
-        token = token == null ? null : token.trim();
-    }
+  public VerifyEmailRequest {
+    token = token == null ? null : token.trim();
+  }
 }

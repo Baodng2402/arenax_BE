@@ -5,10 +5,10 @@ import org.springframework.core.io.Resource;
 
 @ConfigurationProperties(prefix = "arenax.security.jwt")
 public record JwtProperties(
-        String issuer,
-        String audience,
-        long accessTokenTtlSeconds,
-        long refreshTokenTtlSeconds,
-        String keyId,
-        Resource privateKeyLocation,
-        Resource publicKeyLocation) {}
+    String issuer,
+    String audience,
+    long accessTokenTtlSeconds,
+    long refreshTokenTtlSeconds,
+    String keyId,
+    Resource privateKeyLocation,
+    Resource publicKeyLocation) {}

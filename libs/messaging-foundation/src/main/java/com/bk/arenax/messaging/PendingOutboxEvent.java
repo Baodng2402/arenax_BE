@@ -4,9 +4,9 @@ import java.time.Instant;
 
 public interface PendingOutboxEvent {
 
-    String getEventType();
+  String getEventType();
 
-    String getPayload();
+  String getPayload();
 
-    void setPublishedAt(Instant publishedAt);
+  void setPublishedAt(Instant publishedAt);
 }

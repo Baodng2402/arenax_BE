@@ -4,9 +4,4 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record UserPasswordResetRequestedPayload(
-        UUID userId,
-        String email,
-        String displayName,
-        String resetToken,
-        Instant expiresAt) {
-}
+    UUID userId, String email, String displayName, String resetToken, Instant expiresAt) {}

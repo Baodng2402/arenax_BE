@@ -7,10 +7,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ArenaxEventsExchangeAutoConfiguration {
 
-    public static final String EXCHANGE = "arenax.events";
+  public static final String EXCHANGE = "arenax.events";
 
-    @Bean
-    TopicExchange arenaxEventsExchange() {
-        return new TopicExchange(EXCHANGE, true, false);
-    }
+  @Bean
+  TopicExchange arenaxEventsExchange() {
+    return new TopicExchange(EXCHANGE, true, false);
+  }
 }

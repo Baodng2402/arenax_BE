@@ -1,4 +1,3 @@
 package com.bk.arenax.identity.dto.response;
 
-public record UsernameResponse(String username) {
-}
+public record UsernameResponse(String username) {}
