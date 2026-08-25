@@ -14,7 +14,7 @@ API Gateway is the only component allowed to translate a verified end-user JWT i
 
 Gateway must:
 
-- verify the bearer JWT against Identity JWKS
+- verify the bearer JWT against the configured Identity RSA public key
 - remove inbound `Authorization` before forwarding unless the route explicitly needs it
 - strip inbound `X-Arenax-User-Id`, `X-Arenax-Session-Id`, `X-Arenax-Account-Id`, `X-Arenax-Roles`, `X-Arenax-Permissions`
 - inject those headers from verified claims only

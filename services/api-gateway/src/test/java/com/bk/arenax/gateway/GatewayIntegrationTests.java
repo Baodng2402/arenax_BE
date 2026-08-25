@@ -51,7 +51,6 @@ import com.sun.net.httpserver.HttpServer;
 class GatewayIntegrationTests {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static HttpServer jwksServer;
   private static HttpServer downstreamServer;
   private static RSAKey rsaKey;
 
@@ -65,12 +64,6 @@ class GatewayIntegrationTests {
             .keyID("gateway-test-key")
             .build();
 
-    jwksServer = HttpServer.create(new InetSocketAddress(0), 0);
-    jwksServer.createContext(
-        "/.well-known/jwks.json",
-        exchange -> writeJson(exchange, new JWKSet(rsaKey.toPublicJWK()).toJSONObject()));
-    jwksServer.start();
-
     downstreamServer = HttpServer.create(new InetSocketAddress(0), 0);
     downstreamServer.createContext("/", new EchoHeadersHandler());
     downstreamServer.start();
@@ -78,9 +71,6 @@ class GatewayIntegrationTests {
 
   @AfterAll
   static void tearDownServers() {
-    if (jwksServer != null) {
-      jwksServer.stop(0);
-    }
     if (downstreamServer != null) {
       downstreamServer.stop(0);
     }
@@ -101,8 +91,7 @@ class GatewayIntegrationTests {
     registry.add("arenax.security.jwt.issuer", () -> "arenax-identity");
     registry.add("arenax.security.jwt.audience", () -> "arenax-api");
     registry.add(
-        "arenax.security.jwt.jwk-set-uri",
-        () -> "http://127.0.0.1:" + jwksServer.getAddress().getPort() + "/.well-known/jwks.json");
+        "arenax.security.jwt.public-key-location", () -> "classpath:identity-test-public.pem");
     registry.add(
         "arenax.gateway.routes.competition-service",
         () -> "http://127.0.0.1:" + downstreamServer.getAddress().getPort());

@@ -39,11 +39,11 @@ Via gateway under `/api/v1`:
 - `PUT /users/me/username`, `DELETE /users/me/username`
 - `GET /users/me/emails`, `POST /users/me/emails`
 - `PATCH /users/me/emails/{emailId}/primary`, `DELETE /users/me/emails/{emailId}`
-- `GET /.well-known/jwks.json`
 
 ## Implementation Notes
 
 - Identity is the only service that issues JWTs.
+- Gateway verifies JWTs with a configured copy of Identity's public RSA key.
 - Authorization projection stays local here; RBAC is not split into a separate service anymore.
 - Email is not the identity root. Cross-service references use `userId`.
 
