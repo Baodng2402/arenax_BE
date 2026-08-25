@@ -1,4 +1,4 @@
-> **Reference spec** - đọc file này khi bạn thay đổi access-token shape, JWKS behavior, hoặc gateway JWT validation.
+> **Reference spec** - đọc file này khi bạn thay đổi access-token shape, gateway public-key distribution, hoặc gateway JWT validation.
 
 # ArenaX JWT Profile
 
@@ -10,7 +10,7 @@ This document defines the only access-token profile accepted from public clients
 
 - Only `identity-service` signs end-user access tokens.
 - Algorithm is `RS256` only.
-- Identity publishes the public key set at `/.well-known/jwks.json`.
+- Gateway validates access tokens with the configured Identity RSA public key PEM.
 - Private key material never leaves Identity runtime or secret manager.
 - Every key must have a stable `kid`.
 
@@ -36,7 +36,7 @@ This document defines the only access-token profile accepted from public clients
 ## Validation Rules At Gateway
 
 - Require `alg=RS256`.
-- Resolve key by `kid` from JWKS.
+- Use the configured RSA public key that matches the active Identity signing key.
 - Validate signature, issuer, audience, `nbf`, `iat`, `exp`.
 - Reject tokens missing `sub`, `sid`, or `token_version`.
 - Reject malformed `roles` or `permissions` claims.

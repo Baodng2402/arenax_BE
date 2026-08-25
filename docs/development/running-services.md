@@ -148,17 +148,23 @@ export ARENAX_JWT_PUBLIC_KEY_LOCATION=file:/absolute/path/to/identity-public.pem
 
 `secrets/` đã nằm trong `.gitignore` — không bao giờ commit private key lên git.
 
-Gateway không cần private key. Gateway chỉ cần đọc public JWKS từ Identity. Local default hiện tại là:
+Gateway không cần private key. Gateway chỉ cần đọc cùng public key PEM với Identity:
 
 ```text
-http://localhost:8081/.well-known/jwks.json
+./secrets/identity-public.pem
 ```
 
 Nghĩa là local flow chuẩn sẽ là:
 
 - start `identity-service`
 - start `api-gateway`
-- gateway tự verify access token qua JWKS của identity
+- gateway tự verify access token qua `ARENAX_JWT_PUBLIC_KEY_LOCATION`
+
+Nếu bạn đặt file public key ở path khác, nhớ export cùng env cho Gateway:
+
+```bash
+export ARENAX_JWT_PUBLIC_KEY_LOCATION=file:/absolute/path/to/identity-public.pem
+```
 
 ### Bước 4: Start Gateway
 

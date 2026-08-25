@@ -105,7 +105,6 @@ Current public slices:
   - `GET/PATCH /api/v1/users/me`
   - `PUT/DELETE /api/v1/users/me/username`
   - `GET/POST /api/v1/users/me/emails`, `PATCH /api/v1/users/me/emails/{emailId}/primary`, `DELETE /api/v1/users/me/emails/{emailId}`
-  - `GET /.well-known/jwks.json`
 - Tenant:
   - `GET /api/v1/accounts`
   - `POST /api/v1/accounts/workspaces`

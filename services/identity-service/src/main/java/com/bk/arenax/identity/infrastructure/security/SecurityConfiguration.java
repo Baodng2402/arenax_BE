@@ -71,11 +71,6 @@ public class SecurityConfiguration {
   }
 
   @Bean
-  JWKSet publicJwkSet(RSAKey rsaKey) {
-    return new JWKSet(rsaKey.toPublicJWK());
-  }
-
-  @Bean
   JwtEncoder jwtEncoder(RSAKey rsaKey) {
     return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(rsaKey)));
   }

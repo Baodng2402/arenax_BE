@@ -35,4 +35,4 @@ arenax:
     jwt:
       issuer: arenax-identity
       audience: arenax-api
-      jwk-set-uri: ${ARENAX_JWT_JWKS_URI:http://localhost:8081/.well-known/jwks.json}
+      public-key-location: ${ARENAX_JWT_PUBLIC_KEY_LOCATION:file:./secrets/identity-public.pem}
