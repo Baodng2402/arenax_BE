@@ -78,7 +78,8 @@ public class SecurityConfiguration {
       return (RSAPublicKey)
           KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(keyBytes));
     } catch (IOException exception) {
-      throw new IllegalStateException("Failed to read RSA public key resource " + resource, exception);
+      throw new IllegalStateException(
+          "Failed to read RSA public key resource " + resource, exception);
     } catch (GeneralSecurityException exception) {
       throw new IllegalStateException("Failed to parse RSA public key", exception);
     }
