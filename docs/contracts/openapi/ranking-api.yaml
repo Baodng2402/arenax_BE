@@ -1,0 +1,68 @@
+openapi: 3.1.0
+info:
+  title: ArenaX Ranking API
+  version: 1.0.0
+  description: >
+    Player ranking projection API implemented by ranking-service.
+    Gateway route is not enabled yet (see KAN-11), so this spec lists both the
+    future gateway URL and the service's own port for local testing today.
+servers:
+  - url: http://localhost:8086
+    description: Direct to ranking-service (works today, no gateway route yet).
+  - url: http://localhost:8080
+    description: Via API Gateway (not routed yet — KAN-11).
+tags:
+  - name: Ranking
+paths:
+  /api/v1/rankings/users/{userId}:
+    get:
+      tags: [Ranking]
+      summary: Get the current ELO ranking for a user
+      operationId: getUserRanking
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current rating and win/loss record for the user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerRankingResponse'
+        '404':
+          description: >
+            User has no ranking projection yet (no completed matches).
+            Intended contract — current implementation returns 500 instead
+            of 404 for this case; see ranking-service known-gaps.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  responses: {}
+  schemas:
+    PlayerRankingResponse:
+      type: object
+      required: [userId, rating, wins, losses]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string

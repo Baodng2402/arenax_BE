@@ -1,0 +1,215 @@
+openapi: 3.1.0
+info:
+  title: ArenaX Competition API
+  version: 1.0.0
+  description: Sports and match API exposed through API Gateway and implemented by competition-service.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Sports
+  - name: Matches
+paths:
+  /api/v1/sports:
+    post:
+      tags: [Sports]
+      summary: Create a sport
+      operationId: createSport
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSportRequest'
+      responses:
+        '201':
+          description: Sport created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/matches:
+    post:
+      tags: [Matches]
+      summary: Create a match for a sport
+      operationId: createMatch
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMatchRequest'
+      responses:
+        '201':
+          description: Match created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/matches/{matchId}/join:
+    post:
+      tags: [Matches]
+      summary: Join an existing match
+      operationId: joinMatch
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinMatchRequest'
+      responses:
+        '200':
+          description: Updated match state after the participant joined.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/matches/{matchId}/complete:
+    post:
+      tags: [Matches]
+      summary: Complete a match and record the final score
+      operationId: completeMatch
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteMatchRequest'
+      responses:
+        '200':
+          description: Completed match state. Triggers competition.match-completed.v1 for ranking-service.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Validation error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    CreateSportRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+    SportResponse:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    CreateMatchRequest:
+      type: object
+      required: [sportId, matchType, captainUserId]
+      properties:
+        sportId:
+          type: string
+          format: uuid
+        matchType:
+          type: string
+        captainUserId:
+          type: string
+          format: uuid
+    JoinMatchRequest:
+      type: object
+      required: [userId, teamNumber]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        teamNumber:
+          type: integer
+          minimum: 1
+          maximum: 2
+    CompleteMatchRequest:
+      type: object
+      required: [team1Score, team2Score]
+      properties:
+        team1Score:
+          type: integer
+          minimum: 0
+        team2Score:
+          type: integer
+          minimum: 0
+    MatchResponse:
+      type: object
+      required: [id, status, matchType, team1Score, team2Score]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        matchType:
+          type: string
+        team1Score:
+          type: integer
+          nullable: true
+        team2Score:
+          type: integer
+          nullable: true
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
