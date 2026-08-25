@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk-jammy AS build
+FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /workspace/app
 
 # Copy gradle wrapper and build files first for dependency caching
@@ -26,7 +26,7 @@ RUN ./gradlew :services:discovery-server:dependencies --no-daemon
 COPY services/discovery-server/src/ services/discovery-server/src/
 RUN ./gradlew :services:discovery-server:bootJar -x test --no-daemon
 
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 COPY --from=build /workspace/app/services/discovery-server/build/libs/*.jar app.jar
 EXPOSE 8761
