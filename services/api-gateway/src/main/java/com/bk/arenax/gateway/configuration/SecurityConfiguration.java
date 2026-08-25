@@ -38,6 +38,8 @@ public class SecurityConfiguration {
                 authorize
                     .requestMatchers("/actuator/health")
                     .permitAll()
+                    .requestMatchers("/swagger/**", "/openapi/**")
+                    .permitAll()
                     .requestMatchers("/api/v1/auth/logout-all")
                     .authenticated()
                     .requestMatchers("/api/v1/auth/**")

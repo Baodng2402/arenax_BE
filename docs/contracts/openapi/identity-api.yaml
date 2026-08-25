@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: Public authentication API exposed through API Gateway and implemented by identity-service.
 servers:
-  - url: https://api.arenax.example
+  - url: http://localhost:8080
 tags:
   - name: Authentication
   - name: User Profile
